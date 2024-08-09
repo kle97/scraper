@@ -3,7 +3,6 @@ package io.playground.scraper;
 import com.microsoft.playwright.*;
 
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.List;
 
 public class PlaywrightStarter {
