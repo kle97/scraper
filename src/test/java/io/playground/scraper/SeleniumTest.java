@@ -1,5 +1,7 @@
 package io.playground.scraper;
 
+import io.playground.scraper.constant.Constant;
+import io.playground.scraper.util.DownloadUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
@@ -10,12 +12,18 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Map;
 
 @Slf4j
 public class SeleniumTest {
+    
+    @Test
+    public void download() {
+        DownloadUtil.downloadLatestChromeDriver();
+    }
 
     @Test
     public void test() throws Exception {
@@ -48,8 +56,8 @@ public class SeleniumTest {
         driver.findElement(By.cssSelector("#chromedriver-asynctoken"))
               .sendKeys((CharSequence) driver.executeAsyncScript("window.getAsyncToken().then(arguments[0])"));
         driver.findElement(By.cssSelector("#chromedriver-test")).click();
-        Thread.sleep(5000);
 
+        Files.createDirectories(Path.of(Constant.SCREENSHOT_FOLDER_PATH));
         File source = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
         File destination = new File("screenshots/screenshot-selenium.png");
         Files.copy(source.toPath(), destination.getAbsoluteFile().toPath(), StandardCopyOption.REPLACE_EXISTING);
