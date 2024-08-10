@@ -2,6 +2,7 @@ package io.playground.scraper;
 
 import io.playground.scraper.constant.Constant;
 import io.playground.scraper.util.DownloadUtil;
+import io.playground.scraper.util.Patcher;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
@@ -23,12 +24,13 @@ public class SeleniumTest {
     @Test
     public void download() {
         DownloadUtil.downloadLatestChromeDriver();
+//        String patchedChromeDriverPath = Patcher.patchChromeDriver(DownloadUtil.downloadLatestChromeDriver());
     }
 
     @Test
     public void test() throws Exception {
         ChromeOptions chromeOptions = new ChromeOptions();
-        chromeOptions.setBinary(getChromeLocation());
+        System.setProperty("webdriver.chrome.driver", Patcher.patchChromeDriver(DownloadUtil.downloadLatestChromeDriver()));
 
         chromeOptions.setExperimentalOption("excludeSwitches", List.of("enable-automation"));
         chromeOptions.setExperimentalOption("useAutomationExtension", false);
@@ -37,20 +39,22 @@ public class SeleniumTest {
         chromeOptions.addArguments("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36");
 
 //        chromeOptions.addArguments("--window-size=1920,1080");
-        chromeOptions.addArguments("--headless=new");
+//        chromeOptions.addArguments("--headless=new");
 
         chromeOptions.addArguments("--start-maximized");
-        chromeOptions.addArguments("--no-sandbox");
+//        chromeOptions.addArguments("--remote-debugging-pipe");
+//        chromeOptions.addArguments("--no-sandbox");
+        chromeOptions.addArguments("--no-default-browser-check");
+        chromeOptions.addArguments("--no-first-run");
 
         for (Map.Entry<String, Object> entry : chromeOptions.asMap().entrySet()) {
             log.info(entry.getKey() + ": " + entry.getValue());
         }
-        log.info(getChromeLocation().getAbsolutePath());
 
         ChromeDriver driver = new ChromeDriver(chromeOptions);
 
         driver.get("https://hmaker.github.io/selenium-detector/");
-        driver.manage().window().setSize(new Dimension(1920, 1080));
+//        driver.manage().window().setSize(new Dimension(1920, 1080));
         driver.findElement(By.cssSelector("#chromedriver-token"))
               .sendKeys((CharSequence) driver.executeScript("return window.token"));
         driver.findElement(By.cssSelector("#chromedriver-asynctoken"))

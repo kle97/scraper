@@ -18,6 +18,7 @@
         <playwrightVersion>1.41.0</playwrightVersion>
         <assertjVersion>3.26.3</assertjVersion>
         <jacksonVersion>2.17.2</jacksonVersion>
+        <commonLangsVersion>3.16.0</commonLangsVersion>
         <lombokVersion>1.18.34</lombokVersion>
         <logbackVersion>1.5.6</logbackVersion>
         <slf4jVersion>2.0.14</slf4jVersion>
@@ -53,6 +54,12 @@
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <version>${jacksonVersion}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>${commonLangsVersion}</version>
         </dependency>
 
         <dependency>
