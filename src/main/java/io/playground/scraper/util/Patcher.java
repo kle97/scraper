@@ -16,19 +16,17 @@ public class Patcher {
 
     public static String patchChromeDriver(String chromeDriverFileName) {
         try {
-            String rootPattern = "window.";
-            String pattern = rootPattern + "cdc_";
-            String lastToken = "_";
-            byte[] patternBytes = pattern.getBytes(StandardCharsets.UTF_8);
+            byte[] patternBytes = "window.cdc_".getBytes(StandardCharsets.UTF_8);
+            byte terminateToken1Byte = ";".getBytes(StandardCharsets.UTF_8)[0];
+            byte terminateToken2Byte = "|".getBytes(StandardCharsets.UTF_8)[0];
 
             Path chromeDriverPath = Paths.get(chromeDriverFileName);
             byte[] data = Files.readAllBytes(chromeDriverPath);
 
-            String replacementString = "";
-            byte[] replacement = null;
+            boolean anyMatch = false;
             for (int i = 0; i < data.length; i++) {
                 boolean matches = true;
-                for (int j = 0; j < pattern.length(); j++) {
+                for (int j = 0; j < patternBytes.length; j++) {
                     if (patternBytes[j] != data[i + j]) {
                         matches = false;
                         break;
@@ -36,35 +34,32 @@ public class Patcher {
                 }
 
                 if (matches) {
-                    if (replacement == null) {
-                        int length = 0;
-                        byte[] token = lastToken.getBytes(StandardCharsets.UTF_8);
-                        int j = i + rootPattern.length();
-                        boolean firstToken = true;
-                        while (true) {
-                            if (data[j] != token[0]) {
+                    anyMatch = true;
+                    int j = i;
+                    int length = 0;
+                    int terminateToken2Matches = 0;
+                    while (data[j] != terminateToken1Byte) {
+                        if (data[j] == terminateToken2Byte) {
+                            terminateToken2Matches++;
+                            if (terminateToken2Matches == 2) {
                                 length++;
-                                j++;
-                            } else if (firstToken) {
-                                length++;
-                                j++;
-                                firstToken = false;
-                            } else {
                                 break;
                             }
                         }
-                        replacementString = RandomStringUtils.randomAlphanumeric(length);
-                        replacement = replacementString.getBytes(StandardCharsets.UTF_8);
+                        length++;
+                        j++;
                     }
 
-                    System.arraycopy(replacement, 0, data, i + rootPattern.length(), replacement.length);
-                    i += replacement.length;
+                    length++;
+                    byte[] replacementBytes = " ".repeat(length).getBytes(StandardCharsets.UTF_8);
+                    System.arraycopy(replacementBytes, 0, data, i, length);
+                    i += replacementBytes.length;
                 }
             }
 
-            if (!replacementString.isEmpty()) {
+            if (anyMatch) {
                 Files.write(chromeDriverPath, data);
-                log.info("Patched chrome driver '{}' with '{}'!", chromeDriverFileName, replacementString);
+                log.info("Patched chrome driver '{}'!", chromeDriverFileName);
             } else {
                 log.info("Chrome driver '{}' is already patched!", chromeDriverFileName);
             }

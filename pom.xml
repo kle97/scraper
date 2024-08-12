@@ -17,6 +17,7 @@
         <seleniumVersion>4.23.0</seleniumVersion>
         <playwrightVersion>1.41.0</playwrightVersion>
         <assertjVersion>3.26.3</assertjVersion>
+        <awaitilityVersion>4.2.2</awaitilityVersion>
         <jacksonVersion>2.17.2</jacksonVersion>
         <commonLangsVersion>3.16.0</commonLangsVersion>
         <lombokVersion>1.18.34</lombokVersion>
@@ -47,7 +48,12 @@
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
             <version>${assertjVersion}</version>
-            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <version>${awaitilityVersion}</version>
         </dependency>
 
         <dependency>

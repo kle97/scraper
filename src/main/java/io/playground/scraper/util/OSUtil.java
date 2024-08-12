@@ -29,7 +29,7 @@ public class OSUtil {
     
     public static String getOSNameForChromeDriver() {
         if (isWindows()) {
-            return "win32";
+            return "win64";
         } else if (isLinux()) {
             return "linux64";
         } else if (isArmMacOS()) {
