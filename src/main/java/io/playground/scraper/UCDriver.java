@@ -14,11 +14,12 @@ import org.openqa.selenium.remote.service.DriverFinder;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -28,31 +29,37 @@ public class UCDriver extends ChromeDriver {
     public static final int DEFAULT_PORT = 9222;
     private static final ObjectMapper objectMapper = new ObjectMapper();
     
+    private static String host = "127.0.0.1";
     private static int port = DEFAULT_PORT;
+    private static List<String> chromeOptionArguments;
     
     private static Process process;
 
     public UCDriver() {
-        super(patchedChromeOptions());
+        super(patchedDriverService(), patchedChromeOptions());
     }
     
     private static ChromeDriverService patchedDriverService() {
         String patchedDriverPathName = Patcher.patchChromeDriver(DownloadUtil.downloadLatestChromeDriver());
         port = PortUtil.isPortFree(DEFAULT_PORT) ? DEFAULT_PORT : PortProber.findFreePort();
-//        startBinary(chromeOptionArguments());
+//        port = PortProber.findFreePort();
+        chromeOptionArguments = chromeOptionArguments();
+        startBinary(chromeOptionArguments);
         return new ChromeDriverService
                 .Builder()
                 .usingDriverExecutable(Paths.get(patchedDriverPathName).toFile())
-                .usingPort(port)
                 .withBuildCheckDisabled(true)
                 .build();
     }
     
     private static ChromeOptions patchedChromeOptions() {
         ChromeOptions chromeOptions = new ChromeOptions();
-        chromeOptions.setExperimentalOption("debuggerAddress", "127.0.0.1:9222");
+//        chromeOptions.setExperimentalOption("excludeSwitches", List.of("enable-automation", "enable-logging", "enable-blink-features"));
+//        chromeOptions.setExperimentalOption("useAutomationExtension", false);
+        chromeOptions.setExperimentalOption("debuggerAddress", host + ":" + port);
         
-        List<String> arguments = chromeOptionArguments();
+        chromeOptions.setBinary(getChromeLocation());
+        List<String> arguments = chromeOptionArguments == null ? chromeOptionArguments() : chromeOptionArguments;
         chromeOptions.addArguments(arguments);
         for (Map.Entry<String, Object> entry : chromeOptions.asMap().entrySet()) {
             log.info("{}: {}", entry.getKey(), entry.getValue());
@@ -71,12 +78,18 @@ public class UCDriver extends ChromeDriver {
         processBuilder.inheritIO().command(command);
 
         try {
+            log.info(String.join(" ", command));
             process = processBuilder.start();
-            Runtime.getRuntime().addShutdownHook(new Thread(() -> stopBinary(process)));
+//            Runtime.getRuntime().addShutdownHook(new Thread(() -> stopBinary(process)));'
+            SleepUtil.sleep(1000);
             return process;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+    
+    public static void stopBinary() {
+        stopBinary(process);
     }
 
     private static void stopBinary(Process process) {
@@ -90,57 +103,60 @@ public class UCDriver extends ChromeDriver {
     }
     
     private static List<String> chromeOptionArguments() {
-        String patchedDriverPathName = Patcher.patchChromeDriver(DownloadUtil.downloadLatestChromeDriver());
-        System.setProperty("webdriver.chrome.driver", patchedDriverPathName);
-
+//        String patchedDriverPathName = Patcher.patchChromeDriver(DownloadUtil.downloadLatestChromeDriver());
+//        System.setProperty("webdriver.chrome.driver", patchedDriverPathName);
 
         List<String> arguments = new ArrayList<>();
 //        arguments.add("--disable-blink-features=AutomationControlled");
-//        arguments.add("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36");
+        arguments.add("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36");
 
 //        arguments.add("--start-maximized");
+//        arguments.add("--no-sandbox");
 //        arguments.add("--headless=new");
 
-//        arguments.add("--no-default-browser-check");
-//        arguments.add("--no-first-run");
-//        arguments.add("--no-service-autorun");
-//        arguments.add("--password-store=basic");
+        arguments.add("--no-default-browser-check");
+        arguments.add("--no-first-run");
+        arguments.add("--no-service-autorun");
+        arguments.add("--password-store=basic");
 
-//        arguments.add("--window-size=1920,1080");
-//        arguments.add("--disable-dev-shm-usage");
-//        arguments.add("--disable-application-cache");
-//        arguments.add("--safebrowsing-disable-download-protection");
-//        arguments.add("--disable-search-engine-choice-screen");
-//        arguments.add("--disable-browser-side-navigation");
-//        arguments.add("--disable-save-password-bubble");
-//        arguments.add("--disable-single-click-autofill");
-//        arguments.add("--allow-file-access-from-files");
-//        arguments.add("--disable-prompt-on-repost");
-//        arguments.add("--dns-prefetch-disable");
-//        arguments.add("--disable-translate");
-//        arguments.add("--disable-renderer-backgrounding");
-//        arguments.add("--disable-backgrounding-occluded-windows");
-//        arguments.add("--disable-client-phishing-detection");
-//        arguments.add("--disable-oopr-debug-crash-dump");
-//        arguments.add("--disable-top-sites");
-//        arguments.add("--ash-no-nudges");
-//        arguments.add("--no-crash-upload");
-//        arguments.add("--deny-permission-prompts");
+        arguments.add("--window-size=1920,1080");
+        arguments.add("--disable-dev-shm-usage");
+        arguments.add("--disable-application-cache");
+        arguments.add("--safebrowsing-disable-download-protection");
+        arguments.add("--disable-search-engine-choice-screen");
+        arguments.add("--disable-browser-side-navigation");
+        arguments.add("--disable-save-password-bubble");
+        arguments.add("--disable-single-click-autofill");
+        arguments.add("--allow-file-access-from-files");
+        arguments.add("--disable-prompt-on-repost");
+        arguments.add("--dns-prefetch-disable");
+        arguments.add("--disable-translate");
+        arguments.add("--disable-renderer-backgrounding");
+        arguments.add("--disable-backgrounding-occluded-windows");
+        arguments.add("--disable-client-phishing-detection");
+        arguments.add("--disable-oopr-debug-crash-dump");
+        arguments.add("--disable-top-sites");
+        arguments.add("--ash-no-nudges");
+        arguments.add("--no-crash-upload");
+        arguments.add("--deny-permission-prompts");
 //        arguments.add("--simulate-outdated-no-au=\"Tue, 31 Dec 2099 23:59:59 GMT\"");
-//        arguments.add("--disable-ipc-flooding-protection");
-//        arguments.add("--disable-password-protection");
-//        arguments.add("--disable-domain-reliability");
-//        arguments.add("--disable-component-update");
-//        arguments.add("--disable-breakpad");
-//        arguments.add("--disable-features=OptimizationHints,OptimizationHintsFetching,Translate," +
-//                              "OptimizationTargetPrediction,OptimizationGuideModelDownloading,DownloadBubble," +
-//                              "DownloadBubbleV2,InsecureDownloadWarnings,InterestFeedContentSuggestions," +
-//                              "PrivacySandboxSettings4,SidePanelPinning,UserAgentClientHint");
-//        arguments.add("--disable-popup-blocking");
-//        arguments.add("--homepage=chrome://new-tab-page/");
+        arguments.add("--disable-ipc-flooding-protection");
+        arguments.add("--disable-password-protection");
+        arguments.add("--disable-domain-reliability");
+        arguments.add("--disable-component-update");
+        arguments.add("--disable-breakpad");
+        arguments.add("--disable-features=OptimizationHints,OptimizationHintsFetching,Translate," +
+                              "OptimizationTargetPrediction,OptimizationGuideModelDownloading,DownloadBubble," +
+                              "DownloadBubbleV2,InsecureDownloadWarnings,InterestFeedContentSuggestions," +
+                              "PrivacySandboxSettings4,SidePanelPinning,UserAgentClientHint");
+        arguments.add("--disable-popup-blocking");
+        arguments.add("--homepage=chrome://new-tab-page/");
 
-//        arguments.add("--remote-debugging-host=127.0.0.1");
-//        arguments.add("--remote-debugging-port=" + port);
+//        arguments.add("--disable-extensions");
+//        arguments.add("--incognito");
+        arguments.add("--remote-debugging-host=" + host);
+        arguments.add("--remote-debugging-port=" + port);
+        arguments.add("--user-data-dir=" + createTempProfile());
         
         return arguments;
     }
@@ -148,7 +164,7 @@ public class UCDriver extends ChromeDriver {
     @Override
     public void quit() {
         super.quit();
-//        stopBinary(process);
+        stopBinary(process);
     }
 
     public static File getChromeLocation() {
@@ -162,7 +178,14 @@ public class UCDriver extends ChromeDriver {
         return new File(finder.getBrowserPath());
     }
     
-    private static void createTempProfile() {
+    private static String createTempProfile() {
+        Map<String, Object> profileMap = new HashMap<>();
+        profileMap.put("password_manager_enabled", false);
+        profileMap.put("default_content_setting_values", Map.of("notifications", 2, "automatic_downloads", 1));
+        profileMap.put("default_content_settings", Map.of("popups", 0));
+        profileMap.put("managed_default_content_settings", Map.of("popups", 0));
+        profileMap.put("exit_type", null);
+        
         Map<String, Object> preferences = Map.ofEntries(
                 Map.entry("download", Map.of("default_directory", "C:\\Downloads", "directory_upgrade", true, "prompt_for_download", false)),
                 Map.entry("credentials_enable_service", false),
@@ -182,14 +205,37 @@ public class UCDriver extends ChromeDriver {
                 Map.entry("default_content_setting_values", Map.of("notifications", 0)),
                 Map.entry("default_content_settings", Map.of("popups", 0)),
                 Map.entry("managed_default_content_settings", Map.of("popups", 0)),
-                Map.entry("profile", Map.of("password_manager_enabled", false, 
-                                            "default_content_setting_values", Map.of("notifications", 2, "automatic_downloads", 1), 
-                                            "default_content_settings", Map.of("popups", 0), 
-                                            "managed_default_content_settings", Map.of("popups", 0))),
+                Map.entry("profile", profileMap)
         );
-        Map<String, Object> prefMap = new HashMap<>(preferences);
-        prefMap.put("exit_type", null);
-        
-        
+        try {
+            Path tempFolderPath = Files.createTempDirectory("");
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                try {
+                    Files.walk(tempFolderPath)
+                         .sorted(Comparator.reverseOrder())
+                         .map(Path::toFile)
+                         .forEach(File::delete);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+
+            }));
+            String defaultFolder = tempFolderPath.toAbsolutePath() + FileSystems.getDefault().getSeparator() + "Default";
+            Path defaultFolderPath = Files.createDirectories(Path.of(defaultFolder));
+            String preferencesFile = defaultFolder + FileSystems.getDefault().getSeparator() + "Preferences";
+            Path preferencesPath = Path.of(preferencesFile);
+            Files.write(preferencesPath, List.of(objectMapper.writeValueAsString(preferences)), StandardCharsets.UTF_8);
+            return tempFolderPath.toAbsolutePath().toString();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
+    @Override
+    public void get(String url) {
+        executeScript("window.open(\"" + url + "\",\"_blank\");");
+        close();
+        switchTo().window(getWindowHandles().toArray(new String[0])[0]);
     }
 }

@@ -1,6 +1,7 @@
 package io.playground.scraper;
 
 import io.playground.scraper.constant.Constant;
+import io.playground.scraper.util.SleepUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.By;
 import org.openqa.selenium.OutputType;
@@ -15,13 +16,22 @@ import java.nio.file.StandardCopyOption;
 
 @Slf4j
 public class SeleniumTest {
+    
+    private ChromeDriver driver;
+
+    @Test
+    public void tempTest() throws Exception {
+        log.info(UCDriver.getChromeLocation().toString());
+    }
 
     @Test
     public void test() throws Exception {
-        ChromeDriver driver = new UCDriver();
-        Runtime.getRuntime().addShutdownHook(new Thread(driver::quit));
+        Runtime.getRuntime().addShutdownHook(new Thread(UCDriver::stopBinary));
+        driver = new UCDriver();
 
+        driver.executeScript("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})");
         driver.get("https://hmaker.github.io/selenium-detector/");
+        SleepUtil.sleep(5000);
         driver.findElement(By.cssSelector("#chromedriver-token"))
               .sendKeys((CharSequence) driver.executeScript("return window.token"));
         driver.findElement(By.cssSelector("#chromedriver-asynctoken"))
@@ -33,6 +43,8 @@ public class SeleniumTest {
         File source = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
         File destination = new File("screenshots/screenshot-selenium.png");
         Files.copy(source.toPath(), destination.getAbsoluteFile().toPath(), StandardCopyOption.REPLACE_EXISTING);
+
+        SleepUtil.sleep(5000);
 
         driver.quit();
     }
