@@ -6,7 +6,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.By;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
-import org.openqa.selenium.chrome.ChromeDriver;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -17,11 +16,24 @@ import java.nio.file.StandardCopyOption;
 @Slf4j
 public class SeleniumTest {
     
-    private ChromeDriver driver;
+    private UCDriver driver;
 
     @Test
     public void tempTest() throws Exception {
-        log.info(UCDriver.getChromeLocation().toString());
+        Runtime.getRuntime().addShutdownHook(new Thread(UCDriver::stopBinary));
+        driver = new UCDriver();
+        
+        log.info(driver.getCapabilities().toString());
+        driver.get("https://xamvn.name");
+
+        Files.createDirectories(Path.of(Constant.SCREENSHOT_FOLDER_PATH));
+        File source = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
+        File destination = new File("screenshots/screenshot-selenium.png");
+        Files.copy(source.toPath(), destination.getAbsoluteFile().toPath(), StandardCopyOption.REPLACE_EXISTING);
+
+        SleepUtil.sleep(3000);
+
+        driver.quit();
     }
 
     @Test
@@ -31,7 +43,6 @@ public class SeleniumTest {
 
         driver.executeScript("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})");
         driver.get("https://hmaker.github.io/selenium-detector/");
-        SleepUtil.sleep(5000);
         driver.findElement(By.cssSelector("#chromedriver-token"))
               .sendKeys((CharSequence) driver.executeScript("return window.token"));
         driver.findElement(By.cssSelector("#chromedriver-asynctoken"))
@@ -44,7 +55,7 @@ public class SeleniumTest {
         File destination = new File("screenshots/screenshot-selenium.png");
         Files.copy(source.toPath(), destination.getAbsoluteFile().toPath(), StandardCopyOption.REPLACE_EXISTING);
 
-        SleepUtil.sleep(5000);
+        SleepUtil.sleep(3000);
 
         driver.quit();
     }

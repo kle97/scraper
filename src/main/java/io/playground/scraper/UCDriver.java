@@ -6,34 +6,46 @@ import io.playground.scraper.util.Patcher;
 import io.playground.scraper.util.PortUtil;
 import io.playground.scraper.util.SleepUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeDriverService;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.net.PortProber;
+import org.openqa.selenium.remote.RemoteWebDriver;
+import org.openqa.selenium.remote.service.DriverCommandExecutor;
 import org.openqa.selenium.remote.service.DriverFinder;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
-public class UCDriver extends ChromeDriver {
+public class UCDriver extends UCDriver2 {
     
     public static final String DEFAULT_WINDOWS_BINARY_PATH = "C:\\Progra~1\\Google\\Chrome\\Application\\chrome.exe";
     public static final int DEFAULT_PORT = 9222;
     private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final HttpClient httpClient = HttpClient.newHttpClient();
     
     private static String host = "127.0.0.1";
     private static int port = DEFAULT_PORT;
     private static List<String> chromeOptionArguments;
     
     private static Process process;
+
+//    public UCDriver() {
+//        super(new DriverCommandExecutor(patchedDriverService()), patchedChromeOptions());
+//    }
 
     public UCDriver() {
         super(patchedDriverService(), patchedChromeOptions());
@@ -57,6 +69,8 @@ public class UCDriver extends ChromeDriver {
 //        chromeOptions.setExperimentalOption("excludeSwitches", List.of("enable-automation", "enable-logging", "enable-blink-features"));
 //        chromeOptions.setExperimentalOption("useAutomationExtension", false);
         chromeOptions.setExperimentalOption("debuggerAddress", host + ":" + port);
+        
+//        chromeOptions.setAcceptInsecureCerts(false);
         
         chromeOptions.setBinary(getChromeLocation());
         List<String> arguments = chromeOptionArguments == null ? chromeOptionArguments() : chromeOptionArguments;
@@ -108,7 +122,7 @@ public class UCDriver extends ChromeDriver {
 
         List<String> arguments = new ArrayList<>();
 //        arguments.add("--disable-blink-features=AutomationControlled");
-        arguments.add("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36");
+//        arguments.add("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36");
 
 //        arguments.add("--start-maximized");
 //        arguments.add("--no-sandbox");
@@ -151,6 +165,9 @@ public class UCDriver extends ChromeDriver {
                               "PrivacySandboxSettings4,SidePanelPinning,UserAgentClientHint");
         arguments.add("--disable-popup-blocking");
         arguments.add("--homepage=chrome://new-tab-page/");
+        
+        arguments.add("--lang=en-US");
+        arguments.add("--log-level=0");
 
 //        arguments.add("--disable-extensions");
 //        arguments.add("--incognito");
@@ -234,8 +251,24 @@ public class UCDriver extends ChromeDriver {
 
     @Override
     public void get(String url) {
-        executeScript("window.open(\"" + url + "\",\"_blank\");");
-        close();
-        switchTo().window(getWindowHandles().toArray(new String[0])[0]);
+        try {
+            executeScript("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})");
+            
+            HttpRequest httpRequest = HttpRequest.newBuilder(new URI(url)).GET().timeout(Duration.ofSeconds(2)).build();
+            HttpResponse<Void> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.discarding());
+            if (response.statusCode() == 403) {
+                SleepUtil.sleep(60);
+            }
+
+            SleepUtil.sleep(50);
+            String script = "window.open(\"" + url + "\", \"_blank\");";
+            log.info("Executing script: {}", script);
+            executeScript(script);
+            SleepUtil.sleep(6000);
+            close();
+            switchTo().window(getWindowHandles().toArray(new String[0])[0]);
+        } catch (URISyntaxException | InterruptedException | IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
