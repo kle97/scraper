@@ -1,6 +1,7 @@
 package io.playground.scraper;
 
 import io.playground.scraper.constant.Constant;
+import io.playground.scraper.util.DevToolsWebSocketClient;
 import io.playground.scraper.util.SleepUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.By;
@@ -40,6 +41,11 @@ public class SeleniumTest {
     public void test() throws Exception {
         Runtime.getRuntime().addShutdownHook(new Thread(UCDriver::stopBinary));
         driver = new UCDriver();
+        
+        DevToolsWebSocketClient socketClient = new DevToolsWebSocketClient(driver.getDevToolUrl());
+        socketClient.sendMessage("{\"id\": 0,\"method\": \"Browser.getVersion\"}");
+        SleepUtil.sleep(5000);
+        socketClient.close();
 
         driver.executeScript("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})");
         driver.get("https://hmaker.github.io/selenium-detector/");

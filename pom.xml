@@ -15,7 +15,7 @@
 
         <testngVersion>7.10.2</testngVersion>
         <seleniumVersion>4.23.0</seleniumVersion>
-        <playwrightVersion>1.41.0</playwrightVersion>
+        <websocketVersion>2.2.0</websocketVersion>
         <assertjVersion>3.26.3</assertjVersion>
         <awaitilityVersion>4.2.2</awaitilityVersion>
         <jacksonVersion>2.17.2</jacksonVersion>
@@ -39,9 +39,15 @@
         </dependency>
 
         <dependency>
-            <groupId>com.microsoft.playwright</groupId>
-            <artifactId>playwright</artifactId>
-            <version>${playwrightVersion}</version>
+            <groupId>jakarta.websocket</groupId>
+            <artifactId>jakarta.websocket-client-api</artifactId>
+            <version>${websocketVersion}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.glassfish.tyrus.bundles</groupId>
+            <artifactId>tyrus-standalone-client</artifactId>
+            <version>${websocketVersion}</version>
         </dependency>
 
         <dependency>

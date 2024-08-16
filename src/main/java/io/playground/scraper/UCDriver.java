@@ -1,6 +1,7 @@
 package io.playground.scraper;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.playground.scraper.model.BrowserInfo;
 import io.playground.scraper.util.DownloadUtil;
 import io.playground.scraper.util.Patcher;
 import io.playground.scraper.util.PortUtil;
@@ -9,8 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.chrome.ChromeDriverService;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.net.PortProber;
-import org.openqa.selenium.remote.RemoteWebDriver;
-import org.openqa.selenium.remote.service.DriverCommandExecutor;
 import org.openqa.selenium.remote.service.DriverFinder;
 
 import java.io.File;
@@ -173,6 +172,7 @@ public class UCDriver extends UCDriver2 {
 //        arguments.add("--incognito");
         arguments.add("--remote-debugging-host=" + host);
         arguments.add("--remote-debugging-port=" + port);
+        arguments.add("--remote-allow-origins=*");
         arguments.add("--user-data-dir=" + createTempProfile());
         
         return arguments;
@@ -252,7 +252,7 @@ public class UCDriver extends UCDriver2 {
     @Override
     public void get(String url) {
         try {
-            executeScript("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})");
+//            executeScript("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})");
             
             HttpRequest httpRequest = HttpRequest.newBuilder(new URI(url)).GET().timeout(Duration.ofSeconds(2)).build();
             HttpResponse<Void> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.discarding());
@@ -268,6 +268,16 @@ public class UCDriver extends UCDriver2 {
             close();
             switchTo().window(getWindowHandles().toArray(new String[0])[0]);
         } catch (URISyntaxException | InterruptedException | IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    
+    public String getDevToolUrl() {
+        try {
+            HttpRequest request = HttpRequest.newBuilder(new URI("http://" + host + ":" + port + "/json/version")).build();
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            return objectMapper.readValue(response.body(), BrowserInfo.class).webSocketDebuggerUrl();
+        } catch (URISyntaxException | IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
     }
