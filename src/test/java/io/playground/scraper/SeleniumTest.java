@@ -41,14 +41,21 @@ public class SeleniumTest {
     public void test() throws Exception {
         Runtime.getRuntime().addShutdownHook(new Thread(UCDriver::stopBinary));
         driver = new UCDriver();
-        
-        DevToolsWebSocketClient socketClient = new DevToolsWebSocketClient(driver.getDevToolUrl());
-        socketClient.sendMessage("{\"id\": 0,\"method\": \"Browser.getVersion\"}");
-        SleepUtil.sleep(5000);
-        socketClient.close();
 
-        driver.executeScript("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})");
-        driver.get("https://hmaker.github.io/selenium-detector/");
+//        driver.executeScript("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})");
+        String url = "https://hmaker.github.io/selenium-detector/";
+        SleepUtil.sleep(7000);
+        DevToolsWebSocketClient browserClient = new DevToolsWebSocketClient(driver.getDevToolBrowserUrl());
+        driver.get(url);
+        browserClient.getBrowserVersion();
+        DevToolsWebSocketClient pageClient = new DevToolsWebSocketClient(driver.getDevToolPageUrl(url));
+//        SleepUtil.sleep(7000);
+//        pageClient.querySelector("body");
+        pageClient.getDocument();
+        SleepUtil.sleep(500);
+        pageClient.close();
+        browserClient.close();
+
         driver.findElement(By.cssSelector("#chromedriver-token"))
               .sendKeys((CharSequence) driver.executeScript("return window.token"));
         driver.findElement(By.cssSelector("#chromedriver-asynctoken"))

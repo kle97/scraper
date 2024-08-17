@@ -1,7 +1,9 @@
 package io.playground.scraper;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.playground.scraper.model.BrowserInfo;
+import io.playground.scraper.model.PageInfo;
 import io.playground.scraper.util.DownloadUtil;
 import io.playground.scraper.util.Patcher;
 import io.playground.scraper.util.PortUtil;
@@ -56,6 +58,7 @@ public class UCDriver extends UCDriver2 {
 //        port = PortProber.findFreePort();
         chromeOptionArguments = chromeOptionArguments();
         startBinary(chromeOptionArguments);
+        chromeOptionArguments.removeLast();
         return new ChromeDriverService
                 .Builder()
                 .usingDriverExecutable(Paths.get(patchedDriverPathName).toFile())
@@ -172,9 +175,9 @@ public class UCDriver extends UCDriver2 {
 //        arguments.add("--incognito");
         arguments.add("--remote-debugging-host=" + host);
         arguments.add("--remote-debugging-port=" + port);
-        arguments.add("--remote-allow-origins=*");
         arguments.add("--user-data-dir=" + createTempProfile());
-        
+        arguments.add("--remote-allow-origins=http://" + host + ":" + port);
+
         return arguments;
     }
 
@@ -252,8 +255,8 @@ public class UCDriver extends UCDriver2 {
     @Override
     public void get(String url) {
         try {
-//            executeScript("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})");
-            
+            executeScript("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})");
+
             HttpRequest httpRequest = HttpRequest.newBuilder(new URI(url)).GET().timeout(Duration.ofSeconds(2)).build();
             HttpResponse<Void> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.discarding());
             if (response.statusCode() == 403) {
@@ -272,11 +275,26 @@ public class UCDriver extends UCDriver2 {
         }
     }
     
-    public String getDevToolUrl() {
+    public String getDevToolBrowserUrl() {
         try {
             HttpRequest request = HttpRequest.newBuilder(new URI("http://" + host + ":" + port + "/json/version")).build();
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             return objectMapper.readValue(response.body(), BrowserInfo.class).webSocketDebuggerUrl();
+        } catch (URISyntaxException | IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public String getDevToolPageUrl(String url) {
+        try {
+            HttpRequest request = HttpRequest.newBuilder(new URI("http://" + host + ":" + port + "/json/list")).build();
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            PageInfo pageInfo = objectMapper.readValue(response.body(), new TypeReference<List<PageInfo>>(){})
+                                            .stream()
+                                            .filter(info -> info.url().toLowerCase().contains(url.toLowerCase()))
+                                            .findFirst()
+                                            .orElse(null);
+            return pageInfo != null ? pageInfo.webSocketDebuggerUrl() : getDevToolBrowserUrl();
         } catch (URISyntaxException | IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
