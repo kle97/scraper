@@ -1,9 +1,9 @@
 package io.playground.scraper.util;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.playground.scraper.model.DownloadChannel;
-import io.playground.scraper.model.DownloadInfo;
-import io.playground.scraper.model.DownloadPlatform;
+import io.playground.scraper.model.chromedownload.DownloadChannel;
+import io.playground.scraper.model.chromedownload.DownloadInfo;
+import io.playground.scraper.model.chromedownload.DownloadPlatform;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.*;

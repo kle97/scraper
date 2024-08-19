@@ -64,7 +64,7 @@ public class UCDriver2 extends UCDriver3 {
             ChromeDriverService service, ChromeOptions options, ClientConfig clientConfig) {
         super(generateExecutor(service, options, clientConfig), options, ChromeOptions.CAPABILITY);
         casting = new AddHasCasting().getImplementation(getCapabilities(), getExecuteMethod());
-        cdp = new AddHasCdp().getImplementation(getCapabilities(), getExecuteMethod());
+//        cdp = new AddHasCdp().getImplementation(getCapabilities(), getExecuteMethod());
     }
 
     private static ChromeDriverCommandExecutor generateExecutor(
@@ -93,7 +93,8 @@ public class UCDriver2 extends UCDriver3 {
 
         private static Map<String, CommandInfo> getExtraCommands() {
             return Stream.of(
-                                 new AddHasCasting().getAdditionalCommands(), new AddHasCdp().getAdditionalCommands())
+//                                 new AddHasCdp().getAdditionalCommands(),
+                                 new AddHasCasting().getAdditionalCommands()) 
                          .flatMap((m) -> m.entrySet().stream())
                          .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, Map.Entry::getValue));
         }

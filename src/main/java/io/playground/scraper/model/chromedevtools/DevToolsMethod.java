@@ -1,4 +1,4 @@
-package io.playground.scraper.model;
+package io.playground.scraper.model.chromedevtools;
 
 public enum DevToolsMethod {
 
@@ -53,6 +53,10 @@ public enum DevToolsMethod {
     INPUT_INSERT_TEXT("Input.insertText"),
 
     PAGE_ENABLE("Page.enable"),
+    PAGE_NAVIGATE("Page.navigate"),
+    PAGE_GET_FRAME_TREE("Page.getFrameTree"),
+    PAGE_CREATE_ISOLATED_WORLD("Page.createIsolatedWorld"),
+    PAGE_LOAD_EVENT_FIRED("Page.loadEventFired"),
     PAGE_CAPTURE_SCREENSHOT("Page.captureScreenshot"),
 
     RUNTIME_CALL_FUNCTION_ON("Runtime.callFunctionOn"),

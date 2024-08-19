@@ -1,4 +1,4 @@
-package io.playground.scraper.model;
+package io.playground.scraper.model.chromedownload;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

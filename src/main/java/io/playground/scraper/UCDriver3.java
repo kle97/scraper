@@ -37,7 +37,7 @@ public class UCDriver3 extends RemoteWebDriver
         implements HasAuthentication,
         HasBiDi,
         HasCasting,
-        HasCdp,
+//        HasCdp,
 //        HasDevTools,
         HasLaunchApp,
         HasLogEvents,
@@ -294,7 +294,7 @@ public class UCDriver3 extends RemoteWebDriver
         launch.launchApp(id);
     }
 
-    @Override
+//    @Override
     public Map<String, Object> executeCdpCommand(String commandName, Map<String, Object> parameters) {
         Require.nonNull("Command Name", commandName);
         return cdp.executeCdpCommand(commandName, parameters);

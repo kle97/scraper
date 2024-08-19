@@ -2,12 +2,9 @@ package io.playground.scraper;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.playground.scraper.model.BrowserInfo;
-import io.playground.scraper.model.PageInfo;
-import io.playground.scraper.util.DownloadUtil;
-import io.playground.scraper.util.Patcher;
-import io.playground.scraper.util.PortUtil;
-import io.playground.scraper.util.SleepUtil;
+import io.playground.scraper.model.chromedevtools.BrowserInfo;
+import io.playground.scraper.model.chromedevtools.PageInfo;
+import io.playground.scraper.util.*;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.chrome.ChromeDriverService;
 import org.openqa.selenium.chrome.ChromeOptions;
@@ -51,8 +48,8 @@ public class UCDriver extends UCDriver2 {
     public UCDriver() {
         super(patchedDriverService(), patchedChromeOptions());
     }
-    
-    private static ChromeDriverService patchedDriverService() {
+
+    public static ChromeDriverService patchedDriverService() {
         String patchedDriverPathName = Patcher.patchChromeDriver(DownloadUtil.downloadLatestChromeDriver());
         port = PortUtil.isPortFree(DEFAULT_PORT) ? DEFAULT_PORT : PortProber.findFreePort();
 //        port = PortProber.findFreePort();
@@ -66,7 +63,7 @@ public class UCDriver extends UCDriver2 {
                 .build();
     }
     
-    private static ChromeOptions patchedChromeOptions() {
+    public static ChromeOptions patchedChromeOptions() {
         ChromeOptions chromeOptions = new ChromeOptions();
 //        chromeOptions.setExperimentalOption("excludeSwitches", List.of("enable-automation", "enable-logging", "enable-blink-features"));
 //        chromeOptions.setExperimentalOption("useAutomationExtension", false);
@@ -124,7 +121,7 @@ public class UCDriver extends UCDriver2 {
 
         List<String> arguments = new ArrayList<>();
 //        arguments.add("--disable-blink-features=AutomationControlled");
-//        arguments.add("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36");
+        arguments.add("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36");
 
 //        arguments.add("--start-maximized");
 //        arguments.add("--no-sandbox");
@@ -166,7 +163,7 @@ public class UCDriver extends UCDriver2 {
                               "DownloadBubbleV2,InsecureDownloadWarnings,InterestFeedContentSuggestions," +
                               "PrivacySandboxSettings4,SidePanelPinning,UserAgentClientHint");
         arguments.add("--disable-popup-blocking");
-        arguments.add("--homepage=chrome://new-tab-page/");
+        arguments.add("--homepage=about:blank");
         
         arguments.add("--lang=en-US");
         arguments.add("--log-level=0");
@@ -188,14 +185,15 @@ public class UCDriver extends UCDriver2 {
     }
 
     public static File getChromeLocation() {
-        File file = new File(DEFAULT_WINDOWS_BINARY_PATH);
-        if (file.exists()) {
-            return file;
-        }
+//        File file = new File(DEFAULT_WINDOWS_BINARY_PATH);
+//        if (file.exists()) {
+//            return file;
+//        }
         ChromeOptions options = new ChromeOptions();
         options.setBrowserVersion("stable");
         DriverFinder finder = new DriverFinder(ChromeDriverService.createDefaultService(), options);
-        return new File(finder.getBrowserPath());
+        log.info(finder.getDriverPath());
+        return new File(finder.getBrowserPath().replace("Program Files", "Progra~1"));
     }
     
     private static String createTempProfile() {
@@ -275,25 +273,26 @@ public class UCDriver extends UCDriver2 {
         }
     }
     
-    public String getDevToolBrowserUrl() {
+    public static String getDevToolBrowserUrl() {
         try {
             HttpRequest request = HttpRequest.newBuilder(new URI("http://" + host + ":" + port + "/json/version")).build();
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            return objectMapper.readValue(response.body(), BrowserInfo.class).webSocketDebuggerUrl();
+            return JacksonUtil.readValue(response.body(), BrowserInfo.class).webSocketDebuggerUrl();
         } catch (URISyntaxException | IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public String getDevToolPageUrl(String url) {
+    public static String getDevToolPageUrl(String url) {
         try {
             HttpRequest request = HttpRequest.newBuilder(new URI("http://" + host + ":" + port + "/json/list")).build();
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            PageInfo pageInfo = objectMapper.readValue(response.body(), new TypeReference<List<PageInfo>>(){})
-                                            .stream()
-                                            .filter(info -> info.url().toLowerCase().contains(url.toLowerCase()))
-                                            .findFirst()
-                                            .orElse(null);
+            log.info(response.body());
+            PageInfo pageInfo = JacksonUtil.readValue(response.body(), new TypeReference<List<PageInfo>>(){})
+                                           .stream()
+                                           .filter(info -> info.url().toLowerCase().contains(url.toLowerCase()))
+                                           .findFirst()
+                                           .orElse(null);
             return pageInfo != null ? pageInfo.webSocketDebuggerUrl() : getDevToolBrowserUrl();
         } catch (URISyntaxException | IOException | InterruptedException e) {
             throw new RuntimeException(e);

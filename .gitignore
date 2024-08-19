@@ -4,6 +4,7 @@ target/
 !**/src/test/**/target/
 chromedriver/
 screenshots/
+resources/
 
 ### IntelliJ IDEA ###
 .idea

@@ -127,6 +127,14 @@ public class JacksonUtil {
         }
     }
 
+    public static <T> T readValue(String content, TypeReference<T> valueType) {
+        try {
+            return objectMapper.readValue(content, valueType);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static <T> T readValue(String content, Class<T> valueType) {
         try {
             return objectMapper.readValue(content, valueType);
@@ -433,5 +441,50 @@ public class JacksonUtil {
         } else {
             throw new IOException(String.format("Cannot find file %s", filePath));
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    public static int getAsInteger(Map<String, Object> map, String... keys) {
+        try {
+            for (int i = 0; i < keys.length; i++) {
+                if (i < keys.length - 1) {
+                    map = (Map<String, Object>) map.get(keys[i]);
+                } else {
+                    return (Integer) map.get(keys[i]);
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return Integer.MIN_VALUE;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static String getAsString(Map<String, Object> map, String... keys) {
+        try {
+            for (int i = 0; i < keys.length; i++) {
+                if (i < keys.length - 1) {
+                    map = (Map<String, Object>) map.get(keys[i]);
+                } else {
+                    return (String) map.get(keys[i]);                    
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static double getAsDouble(Map<String, Object> map, String... keys) {
+        try {
+            for (int i = 0; i < keys.length; i++) {
+                if (i < keys.length - 1) {
+                    map = (Map<String, Object>) map.get(keys[i]);
+                } else {
+                    return (Double) map.get(keys[i]);
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return Double.MIN_VALUE;
     }
 }
