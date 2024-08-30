@@ -90,6 +90,27 @@ public class UCWebDriver implements WebDriver {
 
     @Override
     public List<WebElement> findElements(By by) {
+        String value = "";
+        boolean useXpath = false;
+        if (by instanceof By.ById) {
+            useXpath = true;
+            value = "//*[@id=\"" + by + "\"]";
+        } else if (by instanceof By.ByClassName) {
+            useXpath = true;
+            value = "//*[@class=\"" + by + "\"]";
+        } else if (by instanceof By.ByName) {
+            useXpath = true;
+            value = "//*[@name=\"" + by + "\"]";
+        }
+        
+//        if (by instanceof By.ByTagName) {
+//            return 
+//        } else if () {
+//            
+//        } else if () {
+//            
+//        }
+
         return List.of();
     }
 

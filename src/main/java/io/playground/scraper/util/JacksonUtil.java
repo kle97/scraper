@@ -127,6 +127,30 @@ public class JacksonUtil {
         }
     }
 
+    public static <T> T convertValue(Object jsonNode, Class<T> clazz) {
+        return objectMapper.convertValue(jsonNode, clazz);
+    }
+
+    public static <T> T convertValue(Object jsonNode, TypeReference<T> valueType) {
+        return objectMapper.convertValue(jsonNode, valueType);
+    }
+
+    public static <T> T convertValue(Object jsonNode, JavaType valueType) {
+        return objectMapper.convertValue(jsonNode, valueType);
+    }
+
+    public static <T> T readValue(JsonNode jsonNode, TypeReference<T> valueType) {
+        try {
+            return objectMapper.readerFor(valueType).readValue(jsonNode);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static <T> T readValue(JsonNode content, Class<T> clazz) {
+        return convertValue(content, clazz);
+    }
+
     public static <T> T readValue(String content, TypeReference<T> valueType) {
         try {
             return objectMapper.readValue(content, valueType);

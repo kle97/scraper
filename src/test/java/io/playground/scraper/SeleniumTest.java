@@ -14,6 +14,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Map;
 
 @Slf4j
 public class SeleniumTest {
@@ -48,6 +49,15 @@ public class SeleniumTest {
     }
 
     @Test
+    public void test4() {
+        WebDriver driver = new UCWebDriver();
+        String url = "https://g2.com";
+        driver.get(url);
+        SleepUtil.sleep(5000);
+        driver.quit();
+    }
+
+    @Test
     public void test3() {
         String url = "https://hmaker.github.io/selenium-detector/";
         DevToolsClient client = new DevToolsClient(UCWebDriver.getDevToolFirstTabUrl("127.0.0.1:9222"));
@@ -62,13 +72,13 @@ public class SeleniumTest {
         String currentFrameId = client.getCurrentFrameId();
         log.info("currentFrameId: {}", currentFrameId);
 
-        int executionContextId = client.createIsolatedWorld(currentFrameId);
+        int executionContextId = client.createIsolatedWorld(currentFrameId).executionContextId();
         log.info("executionContextId: {}", executionContextId);
         
-        String rootObjectId = client.resolveNode(rootNodeId, executionContextId);
+        String rootObjectId = client.resolveNode(rootNodeId, executionContextId).object().objectId();
         log.info("rootObjectId: {}", rootObjectId);
 
-        String elementsObjectId = client.callFunctionOn("obj.querySelectorAll(arguments[0])", rootObjectId, "#chromedriver-token", executionContextId);
+        String elementsObjectId = client.callFunctionOn("obj.querySelectorAll(arguments[0])", executionContextId, rootObjectId, Map.of("value", "#chromedriver-token")).result().objectId();
         log.info("elementsObjectId: {}", elementsObjectId);
         
         client.close();
