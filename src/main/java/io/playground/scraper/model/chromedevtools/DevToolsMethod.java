@@ -50,6 +50,8 @@ public enum DevToolsMethod {
     OVERLAY_DISABLE("Overlay.disable"),
     OVERLAY_HIGHLIGHT_NODE("Overlay.highlightNode"),
 
+    INPUT_DISPATCH_MOUSE_EVENT("Input.dispatchMouseEvent"),
+    INPUT_DISPATCH_KEY_EVENT("Input.dispatchKeyEvent"),
     INPUT_INSERT_TEXT("Input.insertText"),
 
     PAGE_ENABLE("Page.enable"),
@@ -59,6 +61,7 @@ public enum DevToolsMethod {
     PAGE_LOAD_EVENT_FIRED("Page.loadEventFired"),
     PAGE_CAPTURE_SCREENSHOT("Page.captureScreenshot"),
 
+    RUNTIME_EVALUATE("Runtime.evaluate"),
     RUNTIME_CALL_FUNCTION_ON("Runtime.callFunctionOn"),
     RUNTIME_RUN_IF_WAITING_FOR_DEBUGGER("Runtime.runIfWaitingForDebugger"),
 

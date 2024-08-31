@@ -27,4 +27,8 @@ public record SerializedValue(
         }
         return "";
     }
+
+    public Object getValue() {
+        return value.deepCopy();
+    }
 }

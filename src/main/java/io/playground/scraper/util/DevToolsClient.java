@@ -6,6 +6,8 @@ import io.playground.scraper.model.response.IsolateWorld;
 import io.playground.scraper.model.response.ObjectNode;
 import io.playground.scraper.model.response.ScriptNode;
 import io.playground.scraper.model.response.ResolvedNode;
+import io.playground.scraper.model.response.boxmodel.BoxModel;
+import io.playground.scraper.model.response.boxmodel.Point;
 import io.playground.scraper.model.response.frame.FrameTree;
 import io.playground.scraper.model.response.node.RootNode;
 import jakarta.websocket.*;
@@ -166,7 +168,8 @@ public class DevToolsClient {
         }
         return navigated;
     }
-    
+
+    private String globalThisId;
     private int rootNodeId;
     private String rootObjectId;
     private String currentFrameId;
@@ -228,7 +231,7 @@ public class DevToolsClient {
         if (payload.isResult()) {
             return JacksonUtil.convertValue(payload.getResult(), ObjectNode.class);
         }
-        return new ObjectNode(new ResolvedNode("", "", "", "", null, ""));
+        return new ObjectNode(new ResolvedNode("", "", null, "", "", null, ""));
     }
     
     public String getRootObjectId() {
@@ -241,15 +244,116 @@ public class DevToolsClient {
         return rootObjectId;
     }
 
-    public ScriptNode callFunctionOn(String script, int executionContextId, String objectId) {
-        return callFunctionOn(script, executionContextId, objectId, null);
+    public ScriptNode getGlobalThis() {
+        Map<String, Object> params = Map.of("expression", "globalThis", "serializationOptions", Map.of("serialization", "idOnly"));
+        DevToolsPayload payload = sendAndWait(DevToolsMethod.RUNTIME_EVALUATE, params);
+        if (payload.isResult()) {
+            return JacksonUtil.convertValue(payload.getResult(), ScriptNode.class);
+        }
+        return null;
     }
-    
-    public ScriptNode callFunctionOn(String script, int executionContextId, String objectId, Map<String, Object> arguments) {
+
+    public String getGlobalThisId() {
+        if (globalThisId == null) {
+            ScriptNode scriptNode = getGlobalThis();
+            if (scriptNode != null) {
+                globalThisId = scriptNode.result().objectId();
+            }
+        }
+        return globalThisId;
+    }
+
+    public void scrollIntoViewIfNeeded(String objectId) {
+        sendAndWait(DevToolsMethod.DOM_SCROLL_INTO_VIEW_IF_NEEDED, Map.of("objectId", objectId));
+    }
+
+    public BoxModel getBoxModel(String objectId) {
+        DevToolsPayload payload = sendAndWait(DevToolsMethod.DOM_GET_BOX_MODEL, Map.of("objectId", objectId));
+        if (payload.isResult()) {
+            return JacksonUtil.convertValue(payload.getResult(), BoxModel.class);
+        }
+        return null;
+    }
+
+    public void moveMouse(Point point) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("type", "mouseMoved");
+        params.put("x", point.x());
+        params.put("y", point.y());
+//        params.put("modifiers", 0);
+        params.put("button", "left");
+        params.put("clickCount", 0);
+//        params.put("force", 0);
+//        params.put("tangentialPressure", 0);
+//        params.put("tiltX", 0);
+//        params.put("tiltY", 0);
+//        params.put("twist", 0);
+//        params.put("deltaX", 0);
+//        params.put("deltaY", 0);
+//        params.put("pointerType", "mouse");
+        sendAndWait(DevToolsMethod.INPUT_DISPATCH_MOUSE_EVENT, params);
+    }
+
+    public void clickMouse(Point point) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("type", "mousePressed");
+        params.put("x", point.x());
+        params.put("y", point.y());
+//        params.put("modifiers", 0);
+        params.put("button", "left");
+        params.put("clickCount", 1);
+//        params.put("force", 0);
+//        params.put("tangentialPressure", 0);
+//        params.put("tiltX", 0);
+//        params.put("tiltY", 0);
+//        params.put("twist", 0);
+//        params.put("deltaX", 0);
+//        params.put("deltaY", 0);
+//        params.put("pointerType", "mouse");
+        sendAndWait(DevToolsMethod.INPUT_DISPATCH_MOUSE_EVENT, params);
+
+        params.put("type", "mouseReleased");
+        sendAndWait(DevToolsMethod.INPUT_DISPATCH_MOUSE_EVENT, params);
+    }
+
+    public void sendKey(char ch) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("type", "keyDown");
+        params.put("text", ch);
+        sendAndWait(DevToolsMethod.INPUT_DISPATCH_KEY_EVENT, params);
+
+        params.put("type", "keyUp");
+        sendAndWait(DevToolsMethod.INPUT_DISPATCH_KEY_EVENT, params);
+    }
+
+    public ScriptNode executeAsyncScript(String script, int executionContextId, Map<String, Object> arguments) {
         String format = """
                     (function(...arguments) {
-                    const obj = arguments.shift();
-                    return %s;})""";
+                        const obj = this;
+                        const promise = new Promise((resolve, reject) => {arguments.push(resolve)});
+                        %s;
+                        return promise;
+                    })""";
+        script = String.format(format, script);
+
+        List<Object> args = new ArrayList<>();
+        if (arguments != null && !arguments.isEmpty()) {
+            args.add(arguments);
+        }
+
+        return callFunctionOn(script, executionContextId, true, args.toArray());
+    }
+
+    public ScriptNode executeScript(String script, int executionContextId, String objectId) {
+        return executeScript(script, executionContextId, objectId, null);
+    }
+    
+    public ScriptNode executeScript(String script, int executionContextId, String objectId, Map<String, Object> arguments) {
+        String format = """
+                    (function(...arguments) {
+                        const obj = arguments.shift();
+                        %s;
+                    })""";
         script = String.format(format, script);
 
         List<Object> args = new ArrayList<>();
@@ -257,13 +361,17 @@ public class DevToolsClient {
         if (arguments != null && !arguments.isEmpty()) {
             args.add(arguments);
         }
-        
+
+        return callFunctionOn(script, executionContextId, false, args.toArray());
+    }
+
+    public ScriptNode callFunctionOn(String script, int executionContextId, boolean awaitPromise, Object... args) {
         DevToolsPayload payload = sendAndWait(DevToolsMethod.RUNTIME_CALL_FUNCTION_ON, Map.ofEntries(
                 Map.entry("executionContextId", executionContextId),
                 Map.entry("functionDeclaration", script),
                 Map.entry("arguments", args),
                 Map.entry("useGesture", true),
-                Map.entry("awaitPromise", false),
+                Map.entry("awaitPromise", awaitPromise),
                 Map.entry("generatePreview", true),
                 Map.entry("serializationOptions", Map.of("serialization", "deep", "additionalParameters",
                                                          Map.of("includeShadowTree", "all", "maxNodeDepth", 2)))

@@ -4,17 +4,21 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import io.playground.scraper.constant.Constant;
 import io.playground.scraper.model.chromedevtools.BrowserInfo;
 import io.playground.scraper.model.chromedevtools.PageInfo;
+import io.playground.scraper.model.response.ResolvedNode;
+import io.playground.scraper.model.response.ScriptNode;
+import io.playground.scraper.model.response.boxmodel.UCWebElement;
 import io.playground.scraper.util.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.text.StringEscapeUtils;
 import org.awaitility.Awaitility;
 import org.awaitility.core.ConditionFactory;
 import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriverService;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.net.PortProber;
+import org.openqa.selenium.remote.RemoteWebDriver;
+import org.openqa.selenium.remote.RemoteWebElement;
 import org.openqa.selenium.remote.service.DriverFinder;
 
 import java.io.File;
@@ -34,7 +38,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
-public class UCWebDriver implements WebDriver {
+public class UCWebDriver extends RemoteWebDriver {
 
     public static final int DEFAULT_TIMEOUT_IN_MS = 30000;
     public static final String DEFAULT_WINDOWS_BINARY_PATH = "C:\\Progra~1\\Google\\Chrome\\Application\\chrome.exe";
@@ -89,34 +93,97 @@ public class UCWebDriver implements WebDriver {
     }
 
     @Override
-    public List<WebElement> findElements(By by) {
-        String value = "";
-        boolean useXpath = false;
-        if (by instanceof By.ById) {
-            useXpath = true;
-            value = "//*[@id=\"" + by + "\"]";
-        } else if (by instanceof By.ByClassName) {
-            useXpath = true;
-            value = "//*[@class=\"" + by + "\"]";
-        } else if (by instanceof By.ByName) {
-            useXpath = true;
-            value = "//*[@name=\"" + by + "\"]";
+    public Object executeScript(String script, Object... args) {
+        String globalThisId = client.getGlobalThisId();
+        int executionContextId = ResolvedNode.getExecutionContextId(globalThisId);
+        Map<String, Object> params = new HashMap<>();
+        if (args != null && args.length > 1 && args.length % 2 == 0) {
+            for (int i = 0; i < args.length; i+=2) {
+                params.put((String) args[i], args[i + 1]);
+            }
         }
-        
-//        if (by instanceof By.ByTagName) {
-//            return 
-//        } else if () {
-//            
-//        } else if () {
-//            
-//        }
+        ScriptNode scriptNode = client.executeScript(script, executionContextId, globalThisId, params);
+        if (scriptNode != null && scriptNode.result().value() != null) {
+            return scriptNode.result().value();
+        }
 
-        return List.of();
+        return null;
+    }
+
+    @Override
+    public Object executeAsyncScript(String script, Object... args) {
+        int executionContextId = ResolvedNode.getExecutionContextId(client.getGlobalThisId());
+        ScriptNode scriptNode = client.executeAsyncScript(script, executionContextId, null);
+        if (scriptNode != null && scriptNode.result().value() != null) {
+            return scriptNode.result().value();
+        }
+
+        return null;
+    }
+
+    @Override
+    public List<WebElement> findElements(By by) {
+        return findElements(by, null);
     }
 
     @Override
     public WebElement findElement(By by) {
-        return null;
+        List<WebElement> elements = findElements(by, 0);
+        if (!elements.isEmpty()) {
+            WebElement element = elements.getFirst();
+            client.scrollIntoViewIfNeeded(((RemoteWebElement) element).getId());
+            return element;
+        } else {
+            throw new NoSuchElementException("No such element for locator: '" + by + "'!");
+        }
+    }
+
+    private List<WebElement> findElements(By by, Integer index) {
+        List<WebElement> elements = new ArrayList<>();
+        String script = "";
+        String value = by.toString().split(": ")[1];
+        boolean useXpath = false;
+        if (by instanceof By.ById) {
+            useXpath = true;
+            value = "//*[@id=\"" + value + "\"]";
+        } else if (by instanceof By.ByClassName) {
+            useXpath = true;
+            value = "//*[@class=\"" + value + "\"]";
+        } else if (by instanceof By.ByName) {
+            useXpath = true;
+            value = "//*[@name=\"" + value + "\"]";
+        }
+
+        if (by instanceof By.ByTagName) {
+            script = "return obj.getElementsByTagName(arguments[0])";
+        } else if (by instanceof By.ByCssSelector) {
+            script = "return obj.querySelectorAll(arguments[0])";
+        } else if (by instanceof By.ByXPath || useXpath) {
+            script = "return document.evaluate(arguments[0],obj,null,XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,null)";
+        }
+
+        if (!script.isEmpty()) {
+            int executionContextId = client.getCurrentExecutionContextId();
+            ScriptNode scriptNode = client.executeScript(script, executionContextId, client.getRootObjectId(), Map.of("value", value));
+            if (scriptNode != null) {
+                String parentObjectId = scriptNode.result().objectId();
+                int nodeListSize = scriptNode.result().getListSize();
+                for (int i = 0; i < nodeListSize; i++) {
+                    scriptNode = client.executeScript("return obj[arguments[0]]", executionContextId, parentObjectId, Map.of("value", i));
+                    if (scriptNode != null) {
+                        String objectId = scriptNode.result().objectId();
+                        UCWebElement element = new UCWebElement(this, objectId);
+                        elements.add(element);
+                    }
+
+                    if (index != null && index == i) {
+                        return elements;
+                    }
+                }
+            }
+        }
+
+        return elements;
     }
 
     @Override
@@ -444,5 +511,9 @@ public class UCWebDriver implements WebDriver {
                 .usingDriverExecutable(Paths.get(patchedDriverPathName).toFile())
                 .withBuildCheckDisabled(true)
                 .build();
+    }
+
+    public DevToolsClient getClient() {
+        return this.client;
     }
 }

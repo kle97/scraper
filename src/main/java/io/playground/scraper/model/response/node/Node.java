@@ -22,7 +22,7 @@ public record Node(
         
         List<Node> children,
         
-        Map<String, String> attributes,
+        List<Object> attributes,
         
         String publicId,
         String systemId,

@@ -10,6 +10,8 @@ public record ResolvedNode(
         String type,
         
         String subtype,
+
+        Object value,
         
         String className,
         
@@ -35,6 +37,10 @@ public record ResolvedNode(
     }
     
     public int getExecutionContextId() {
+        return getExecutionContextId(objectId);
+    }
+
+    public static int getExecutionContextId(String objectId) {
         if (objectId != null && !objectId.isEmpty()) {
             try {
                 String[] tokens = objectId.split("\\.");
