@@ -9,7 +9,6 @@ public record BoxModelProp(
         Object margin,
         double width,
         double height
-
 ) {
     public Point getTopLeft() {
         if (content != null && !content.isEmpty()) {

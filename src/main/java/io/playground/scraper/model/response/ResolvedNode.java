@@ -1,5 +1,6 @@
 package io.playground.scraper.model.response;
 
+import io.playground.scraper.core.UCDriver;
 import io.playground.scraper.model.response.value.SerializedValue;
 
 import java.util.regex.Matcher;
@@ -51,5 +52,35 @@ public record ResolvedNode(
             }
         }
         return -1;
+    }
+    
+    public boolean getValueAsBoolean() {
+        try {
+            if (type != null && type.equals("boolean")) {
+                return (Boolean) value;
+            }
+        } catch (Exception ignored) {
+        }
+        return false;
+    }
+
+    public String getValueAsString() {
+        try {
+            if (type != null && type.equals("string")) {
+                return String.valueOf(value);
+            }
+        } catch (Exception ignored) {
+        }
+        return UCDriver.ELEMENT_NOT_FOUND;
+    }
+
+    public int getValueAsInteger() {
+        try {
+            if (type != null && type.equals("number")) {
+                return (Integer) value;
+            }
+        } catch (Exception ignored) {
+        }
+        return Integer.MIN_VALUE;
     }
 }

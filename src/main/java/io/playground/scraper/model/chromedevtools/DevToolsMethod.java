@@ -21,6 +21,7 @@ public enum DevToolsMethod {
     DOM_REMOVE_ATTRIBUTE("DOM.removeAttribute"),
     DOM_REMOVE_NODE("DOM.removeNode"),
     DOM_RESOLVE_NODE("DOM.resolveNode"),
+    DOM_REQUEST_NODE("DOM.requestNode"),
     DOM_SCROLL_INTO_VIEW_IF_NEEDED("DOM.scrollIntoViewIfNeeded"),
     DOM_SET_ATTRIBUTES_AS_TEXT("DOM.setAttributesAsText"),
     DOM_SET_ATTRIBUTE_VALUE("DOM.setAttributeValue"),
@@ -28,8 +29,13 @@ public enum DevToolsMethod {
     DOM_COLLECT_CLASS_NAME_FROM_SUB_TREE("DOM.collectClassNamesFromSubtree"),
     DOM_GET_ANCHOR_ELEMENT("DOM.getAnchorElement"),
     DOM_GET_CONTAINER_FOR_NODE("DOM.getContainerForNode"),
+    DOM_CHILD_NODE_COUNT_UPDATED("DOM.childNodeCountUpdated"),
     DOM_PERFORM_SEARCH("DOM.performSearch"),
+    
+    CCS_GET_COMPUTED_STYLE_FOR_NODE("CSS.getComputedStyleForNode"),
 
+    NETWORK_SET_COOKIE("Network.setCookie"),
+    NETWORK_SET_COOKIES("Network.setCookies"),
     NETWORK_GET_COOKIES("Network.getCookies"),
     NETWORK_DELETE_COOKIES("Network.deleteCookies"),
     NETWORK_CLEAR_BROWSER_COOKIES("Network.clearBrowserCookies"),
@@ -55,10 +61,16 @@ public enum DevToolsMethod {
     INPUT_INSERT_TEXT("Input.insertText"),
 
     PAGE_ENABLE("Page.enable"),
+    PAGE_RELOAD("Page.reload"),
+    PAGE_GET_NAVIGATION_HISTORY("Page.getNavigationHistory"),
+    PAGE_NAVIGATE_TO_HISTORY_ENTRY("Page.navigateToHistoryEntry"),
     PAGE_NAVIGATE("Page.navigate"),
+    PAGE_HANDLE_JAVASCRIPT_DIALOG("Page.handleJavaScriptDialog"),
+    PAGE_JAVASCRIPT_DIALOG_OPENING("Page.javascriptDialogOpening"),
     PAGE_GET_FRAME_TREE("Page.getFrameTree"),
     PAGE_CREATE_ISOLATED_WORLD("Page.createIsolatedWorld"),
     PAGE_LOAD_EVENT_FIRED("Page.loadEventFired"),
+    PAGE_FRAME_STOPPED_LOADING("Page.frameStoppedLoading"),
     PAGE_CAPTURE_SCREENSHOT("Page.captureScreenshot"),
 
     RUNTIME_EVALUATE("Runtime.evaluate"),
@@ -66,6 +78,9 @@ public enum DevToolsMethod {
     RUNTIME_RUN_IF_WAITING_FOR_DEBUGGER("Runtime.runIfWaitingForDebugger"),
 
     BROWSER_GET_VERSION("Browser.getVersion"),
+    BROWSER_GET_WINDOW_FOR_TARGET("Browser.getWindowForTarget"),
+    BROWSER_GET_WINDOW_BOUNDS("Browser.getWindowBounds"),
+    BROWSER_SET_WINDOW_BOUNDS("Browser.setWindowBounds"),
     BROWSER_CLOSE("Browser.close"),
     BROWSER_SET_DOWNLOAD_BEHAVIOR("Browser.setDownloadBehavior"),
 
@@ -74,6 +89,11 @@ public enum DevToolsMethod {
     TARGET_CREATE_TARGET("Target.createTarget"),
     TARGET_SET_DISCOVER_TARGETS("Target.setDiscoverTargets"),
     TARGET_SET_AUTO_ATTACH("Target.setAutoAttach"),
+    TARGET_ATTACH_TO_TARGET("Target.attachToTarget"),
+    TARGET_ACTIVATE_TARGET("Target.activateTarget"),
+    TARGET_GET_TARGET_INFO("Target.getTargetInfo"),
+    TARGET_GET_TARGETS("Target.getTargets"),
+    TARGET_CLOSE_TARGET("Target.closeTarget"),
     ;
 
     private final String method;

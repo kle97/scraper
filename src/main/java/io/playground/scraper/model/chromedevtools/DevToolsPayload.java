@@ -37,7 +37,7 @@ public class DevToolsPayload {
 
     @JsonIgnore
     public boolean isEvent() {
-        return method != null && !method.isEmpty();
+        return id == null && method != null && !method.isEmpty();
     }
     
     @JsonIgnore

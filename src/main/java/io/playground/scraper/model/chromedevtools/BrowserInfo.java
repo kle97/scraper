@@ -7,7 +7,7 @@ public record BrowserInfo(
         String browser,
         
         @JsonProperty("Protocol-Version")
-        String protocolVersion,
+        String protocolVersionX,
 
         @JsonProperty("User-Agent")
         String userAgent,
@@ -18,5 +18,11 @@ public record BrowserInfo(
         @JsonProperty("WebKit-Version")
         String webkitVersion,
         
-        String webSocketDebuggerUrl
+        String webSocketDebuggerUrl,
+        
+        String jsVersion,
+
+        String product,
+
+        String protocolVersion
 ) {}
