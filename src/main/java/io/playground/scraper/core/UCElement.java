@@ -223,10 +223,10 @@ public class UCElement extends RemoteWebElement {
     public Rectangle getRect() {
         BoxModel boxModel = client.getBoxModel(super.getId());
         if (boxModel != null) {
-            return new Rectangle((int) boxModel.model().getTopLeft().x(), 
-                                 (int) boxModel.model().getTopLeft().y(), 
-                                 (int) boxModel.model().height(),
-                                 (int) boxModel.model().width());
+            return new Rectangle(Math.abs((int) boxModel.model().getTopLeft().x()),
+                                 Math.abs((int) boxModel.model().getTopLeft().y()),
+                                 Math.abs((int) boxModel.model().height()),
+                                 Math.abs((int) boxModel.model().width()));
         }
         return new Rectangle(new org.openqa.selenium.Point(0, 0), new Dimension(0, 0));
     }

@@ -56,9 +56,11 @@ public enum DevToolsMethod {
     OVERLAY_DISABLE("Overlay.disable"),
     OVERLAY_HIGHLIGHT_NODE("Overlay.highlightNode"),
 
+    
     INPUT_DISPATCH_MOUSE_EVENT("Input.dispatchMouseEvent"),
     INPUT_DISPATCH_KEY_EVENT("Input.dispatchKeyEvent"),
     INPUT_INSERT_TEXT("Input.insertText"),
+    INPUT_SYNTHESIZE_SCROLL_GESTURE("Input.synthesizeScrollGesture"),
 
     PAGE_ENABLE("Page.enable"),
     PAGE_RELOAD("Page.reload"),

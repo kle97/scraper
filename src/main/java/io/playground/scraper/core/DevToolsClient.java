@@ -570,6 +570,26 @@ public class DevToolsClient {
         }
         return 1;
     }
+    
+    public void scrollGesture(int x, int y, Integer xDistance, Integer yDistance, Integer speed, Integer repeatCount) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("x", x);
+        params.put("y", y);
+        if (xDistance != null) {
+            params.put("xDistance", xDistance);
+        }
+        if (yDistance != null) {
+            params.put("yDistance", yDistance);
+        }
+        if (speed != null) {
+            params.put("speed", speed);
+        }
+        if (repeatCount != null) {
+            params.put("repeatCount", repeatCount);
+            params.put("repeatDelayMs", 0);
+        }
+        sendAndWait(DevToolsMethod.INPUT_SYNTHESIZE_SCROLL_GESTURE, params);
+    }
 
     public void moveMouse(Point point) {
         Map<String, Object> params = new HashMap<>();

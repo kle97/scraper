@@ -23,8 +23,9 @@ public class SeleniumTest extends BaseTP {
         WebElement element = driver.findElement(By.xpath("//*[contains(text(), \"UEFA Champions League\")]"));
         element.click();
         DriverUtil.waitForLoadingToFinish(driver);
-        WebElement element2 = driver.findElement(By.xpath("//*[contains(text(), 'Upcoming Matches')]"));
-        DriverUtil.scrollIntoView(element2);
+        WebElement element2 = driver.findElement(By.xpath("//div[contains(text(), 'Upcoming Matches')]"));
+        WebElement element3 = driver.findElement(By.cssSelector(".wcl-PageContainer-scrollable"));
+        DriverUtil.scrollIntoView(element3, element2);
         softly().as("Upcoming Matches title").assertThat(element2.getText()).isEqualTo("Upcoming Matches");
         Reporter.addScreenshot(driver, "screenshot-selenium");
         driver.sleep(5000);
@@ -64,13 +65,30 @@ public class SeleniumTest extends BaseTP {
         UCDriver driver = new UCDriver();
         String url = "https://g2.com";
         driver.get(url);
+        
         G2HomePage page = Pages.getG2HomePage(driver);
+        
         page.scrollToSoftwareReviewsButton();
         softly().as("Software Reviews button label")
                 .assertThat(page.getSoftwareReviewsButtonLabel())
                 .isEqualTo("Software Reviews");
         Reporter.addScreenshot(driver, "testG2");
+
+        page.scrollToClaimG2ProfileButton();
+        softly().as("Claim G2 Profile button label")
+                .assertThat(page.getClaimG2ProfileButtonLabel())
+                .isEqualTo("Claim Your G2 Profile");
+        Reporter.addScreenshot(driver, "testG2");
+        
+        page.scrollToWriteAReviewButton();
+        softly().as("Write a Review button label")
+                .assertThat(page.getWriteAReviewButtonLabel())
+                .isEqualTo("Write a Review");
+        Reporter.addScreenshot(driver, "testG2");
+
+        page.scrollToSoftwareReviewsButton();
         page.clickSoftwareReviewsButton();
+        
         Reporter.addScreenshot(driver, "testG2");
         driver.quit();
     }

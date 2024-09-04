@@ -8,9 +8,15 @@ import org.openqa.selenium.support.FindBy;
 
 public class G2HomePage extends BasePage {
 
+    @FindBy(xpath = "//*[text()='Write a Review']")
+    private WebElement writeAReviewButton;
+
+    @FindBy(xpath = "//*[text()='Claim Your G2 Profile']")
+    private WebElement claimG2ProfileButton;
+
     @FindBy(xpath = "//*[text()='Software Reviews']")
     private WebElement softwareReviewsButton;
-
+    
     public G2HomePage(WebDriver driver) {
         super(driver);
     }
@@ -19,12 +25,28 @@ public class G2HomePage extends BasePage {
         return softwareReviewsButton.getText();
     }
 
+    public String getWriteAReviewButtonLabel() {
+        return writeAReviewButton.getText();
+    }
+
+    public String getClaimG2ProfileButtonLabel() {
+        return claimG2ProfileButton.getText();
+    }
+
     public void clickSoftwareReviewsButton() {
         softwareReviewsButton.click();
+        DriverUtil.waitForLoadingToFinish(driver());
     }
 
     public void scrollToSoftwareReviewsButton() {
         DriverUtil.scrollIntoView(softwareReviewsButton);
-        DriverUtil.scrollIntoView(driver(), softwareReviewsButton);
+    }
+
+    public void scrollToWriteAReviewButton() {
+        DriverUtil.scrollIntoView(writeAReviewButton);
+    }
+
+    public void scrollToClaimG2ProfileButton() {
+        DriverUtil.scrollIntoView(claimG2ProfileButton);
     }
 }
