@@ -24,7 +24,7 @@ public record ResolvedNode(
 ) {
     
     public int getListSize() {
-        if (description != null && description.contains("NodeList")) {
+        if (description != null && (description.contains("NodeList") || description.contains("HTMLCollection"))) {
             try {
                 Pattern pattern = Pattern.compile("(\\d+)");
                 Matcher matcher = pattern.matcher(description);

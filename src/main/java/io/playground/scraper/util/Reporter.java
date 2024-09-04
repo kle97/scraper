@@ -55,6 +55,12 @@ public class Reporter {
         ExtentSparkReporter spark = new ExtentSparkReporter(reportFilePath);
         spark.config().thumbnailForBase64(true);
         spark.config().setCss(".col-md-3 > img { max-width: 180px; max-height: 320px; } .col-md-3 > .title { max-width: 180px; }");
+        spark.config().setJs("""
+                             for (let element of document.getElementsByClassName('card')) {
+                                if (element.getElementsByClassName('collapse').length > 0) {
+                                    element.getElementsByClassName('node').item(0).classList.add('collapsed')
+                                }
+                             }""");
         attachReporter(spark);
     }
 

@@ -14,6 +14,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <testngVersion>7.10.2</testngVersion>
+        <appiumVersion>9.3.0</appiumVersion>
         <seleniumVersion>4.23.0</seleniumVersion>
         <websocketVersion>2.2.0</websocketVersion>
         <assertjVersion>3.26.3</assertjVersion>
@@ -37,6 +38,12 @@
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
             <version>${testngVersion}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.appium</groupId>
+            <artifactId>java-client</artifactId>
+            <version>${appiumVersion}</version>
         </dependency>
 
         <dependency>

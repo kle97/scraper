@@ -2,6 +2,9 @@ package io.playground.scraper;
 
 import io.playground.common.BaseTP;
 import io.playground.scraper.core.UCDriver;
+import io.playground.scraper.page.Pages;
+import io.playground.scraper.page.detector.SeleniumDetectorPage;
+import io.playground.scraper.page.g2.G2HomePage;
 import io.playground.scraper.util.DriverUtil;
 import io.playground.scraper.util.Reporter;
 import lombok.extern.slf4j.Slf4j;
@@ -33,28 +36,23 @@ public class SeleniumTest extends BaseTP {
         UCDriver driver = new UCDriver();
         String url = "https://hmaker.github.io/selenium-detector/";
         driver.get(url);
-        WebElement element0 = driver.findElement(By.cssSelector(".test-status"));
-        softly().as("status1").assertThat(element0.getText()).isEqualTo("Passing...");
-        Reporter.addScreenshot(element0, "screenshot-selenium-element1");
 
-        WebElement element1 = driver.findElement(By.cssSelector("#chromedriver-token"));
-        String windowToken = (String) driver.executeScript("return window.token");
-        element1.sendKeys(windowToken);
-        softly().as("windowToken").assertThat(element1.getText()).isEqualTo(windowToken);
+        SeleniumDetectorPage page = Pages.getSeleniumDetectorPage(driver);
 
-        WebElement element2 = driver.findElement(By.cssSelector("#chromedriver-asynctoken"));
-        String windowAsyncToken = (String) driver.executeAsyncScript("window.getAsyncToken().then(arguments[0])");
-        element2.sendKeys(windowAsyncToken);
-        softly().as("windowAsyncToken").assertThat(element2.getText()).isEqualTo(windowAsyncToken);
+        softly().as("status1").assertThat(page.getTestStatus()).isEqualTo("Passing...");
+        page.takeTestStatusScreenshot();
+
+        page.enterWindowToken(page.getWindowToken());
+        softly().as("windowToken").assertThat(page.getTokenFieldValue()).isEqualTo(page.getWindowToken());
+
+        page.enterWindowAsyncToken(page.getWindowAsyncToken());
+        softly().as("windowAsyncToken").assertThat(page.getAsyncTokenFieldValue()).isEqualTo(page.getWindowAsyncToken());
         
-        WebElement element3 = driver.findElement(By.cssSelector("#chromedriver-test"));
-        element3.click();
+        page.clickTestButton();
+        page.clickTestResult();
 
-        WebElement element4 = driver.findElement(By.cssSelector(".test-result"));
-        element4.click();
-
-        softly().as("status2").assertThat(element0.getText()).isEqualTo("Passed!");
-        Reporter.addScreenshot(element0, "screenshot-selenium-element2");
+        softly().as("status2").assertThat(page.getTestStatus()).isEqualTo("Passed!");
+        page.takeTestStatusScreenshot();
 
         Reporter.addScreenshot(driver, "screenshot-selenium");
         driver.sleep(5000);
@@ -66,7 +64,14 @@ public class SeleniumTest extends BaseTP {
         UCDriver driver = new UCDriver();
         String url = "https://g2.com";
         driver.get(url);
-        driver.sleep(5000);
+        G2HomePage page = Pages.getG2HomePage(driver);
+        page.scrollToSoftwareReviewsButton();
+        softly().as("Software Reviews button label")
+                .assertThat(page.getSoftwareReviewsButtonLabel())
+                .isEqualTo("Software Reviews");
+        Reporter.addScreenshot(driver, "testG2");
+        page.clickSoftwareReviewsButton();
+        Reporter.addScreenshot(driver, "testG2");
         driver.quit();
     }
 }

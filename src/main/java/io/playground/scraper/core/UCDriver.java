@@ -7,9 +7,9 @@ import io.playground.scraper.core.side.UCOptions;
 import io.playground.scraper.core.side.UCTargetLocator;
 import io.playground.scraper.model.chromedevtools.BrowserInfo;
 import io.playground.scraper.model.chromedevtools.PageInfo;
-import io.playground.scraper.model.response.html.OuterHtml;
 import io.playground.scraper.model.response.ResolvedNode;
 import io.playground.scraper.model.response.ScriptNode;
+import io.playground.scraper.model.response.html.OuterHtml;
 import io.playground.scraper.model.response.screenshot.ScreenshotData;
 import io.playground.scraper.model.response.screenshot.ViewPort;
 import io.playground.scraper.model.response.target.TargetInfo;
@@ -20,7 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.text.StringEscapeUtils;
 import org.awaitility.Awaitility;
 import org.awaitility.core.ConditionFactory;
-import org.awaitility.core.ConditionTimeoutException;
+import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriverService;
 import org.openqa.selenium.chrome.ChromeOptions;
@@ -45,7 +45,6 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Duration;
 import java.util.*;
-import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
@@ -55,7 +54,6 @@ public class UCDriver extends RemoteWebDriver {
     
     public static final String ELEMENT_NOT_FOUND = "ELEMENT_NOT_FOUND";
     
-    public static final int DEFAULT_TIMEOUT_IN_MS = 2000;
     public static final int DEFAULT_EVENT_TIMEOUT_IN_MS = 3000;
     public static final String DEFAULT_WINDOWS_BINARY_PATH = "C:\\Progra~1\\Google\\Chrome\\Application\\chrome.exe";
     public static final String DEFAULT_NEW_TAB_URL = "chrome://newtab/";
@@ -79,23 +77,15 @@ public class UCDriver extends RemoteWebDriver {
     private final Process process;
     
     private final DevToolsClient client;
-    private final int timeoutInMs;
+
+    private Capabilities capabilities;
 
     public UCDriver() {
-        this(false, DEFAULT_TIMEOUT_IN_MS);
-    }
-
-    public UCDriver(boolean logEvents) {
-        this(logEvents, DEFAULT_TIMEOUT_IN_MS);
-    }
-
-    public UCDriver(int timeoutInMs) {
-        this(false, timeoutInMs);
+        this(false);
     }
     
-    public UCDriver(boolean logEvents, int timeoutInMs) {
+    public UCDriver(boolean logEvents) {
         Runtime.getRuntime().addShutdownHook(new Thread(this::quit));
-        this.timeoutInMs = timeoutInMs;
         this.host = "127.0.0.1";
         this.port = PortUtil.isPortFree(DEFAULT_PORT) ? DEFAULT_PORT : PortProber.findFreePort();
         this.debuggerUrl = this.host + ":" + this.port;
@@ -223,71 +213,57 @@ public class UCDriver extends RemoteWebDriver {
     public List<WebElement> findElements(By by, Integer targetIndex) {
         return findElements(by, getClient().getRootObjectId(), targetIndex);
     }
-
-    public List<WebElement> findElements(By by, String objectId, Integer targetIndex) {
-        return findElements(by, objectId, targetIndex, timeoutInMs);
-    }
     
-    public List<WebElement> findElements(By by, String objectId, Integer targetIndex, int timeoutInMs) {
+    public List<WebElement> findElements(By by, String objectId, Integer targetIndex) {
         List<WebElement> elements = new ArrayList<>();
         String script = "";
         String value = by.toString().split(": ")[1];
         boolean useXpath = false;
-        if (by instanceof By.ById) {
-            useXpath = true;
-            value = "//*[@id=\"" + value + "\"]";
-        } else if (by instanceof By.ByClassName) {
-            useXpath = true;
-            value = "//*[@class=\"" + value + "\"]";
-        } else if (by instanceof By.ByName) {
-            useXpath = true;
-            value = "//*[@name=\"" + value + "\"]";
+        if (by.toString() != null) {
+            if (by.toString().contains("By.id")) {
+                useXpath = true;
+                value = "//*[@id=\"" + value + "\"]";
+            } else if (by.toString().contains("By.className")) {
+                useXpath = true;
+                value = "//*[@class=\"" + value + "\"]";
+            } else if (by.toString().contains("By.name")) {
+                useXpath = true;
+                value = "//*[@name=\"" + value + "\"]";
+            }
+
+            if (by.toString().contains("By.tagName")) {
+                script = "return obj.getElementsByTagName(arguments[0])";
+            } else if (by.toString().contains("By.cssSelector")) {
+                script = "return obj.querySelectorAll(arguments[0])";
+            } else if (by.toString().contains("By.xpath") || useXpath) {
+                script = "return document.evaluate(arguments[0],obj,null,XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,null)";
+            }
         }
 
-        if (by instanceof By.ByTagName) {
-            script = "return obj.getElementsByTagName(arguments[0])";
-        } else if (by instanceof By.ByCssSelector) {
-            script = "return obj.querySelectorAll(arguments[0])";
-        } else if (by instanceof By.ByXPath || useXpath) {
-            script = "return document.evaluate(arguments[0],obj,null,XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,null)";
-        }
-        
         if (script.isEmpty()) {
             return elements;
         }
 
-        ConditionFactory await = Awaitility.waitAtMost(Duration.ofMillis(timeoutInMs))
-                                           .pollDelay(Duration.ZERO)
-                                           .ignoreExceptions();
-        try {
-            String finalScript = script;
-            String finalValue = value;
-            elements = await.until(() -> {
-                List<WebElement> results = new ArrayList<>();
-                ScriptNode scriptNode = getClient().executeScript(finalScript, objectId, Map.of("value", finalValue));
-                if (scriptNode == null) {
-                    return results;
+        ScriptNode scriptNode = getClient().executeScript(script, objectId, Map.of("value", value));
+        if (scriptNode == null) {
+            return elements;
+        }
+        String parentObjectId = scriptNode.result().objectId();
+        if (scriptNode.result().className() != null && scriptNode.result().className().equals("XPathResult")) {
+            ScriptNode checkType = getClient().executeScript("return obj.resultType == 7", parentObjectId,
+                                                             "json");
+            if (checkType != null && checkType.result().getValueAsBoolean()) {
+                ScriptNode lengthNode = getClient().executeScript("return obj.snapshotLength", parentObjectId,
+                                                                  "json");
+                if (lengthNode != null && lengthNode.result().getValueAsInteger() > 0) {
+                    int length = lengthNode.result().getValueAsInteger();
+                    elements = findElements("return obj.snapshotItem(arguments[0])", parentObjectId, length, targetIndex);
                 }
-                String parentObjectId = scriptNode.result().objectId();
-                if (scriptNode.result().className() != null && scriptNode.result().className().equals("XPathResult")) {
-                    ScriptNode checkType = getClient().executeScript("return obj.resultType == 7", parentObjectId,
-                                                                     "json");
-                    if (checkType != null && checkType.result().getValueAsBoolean()) {
-                        ScriptNode lengthNode = getClient().executeScript("return obj.snapshotLength", parentObjectId,
-                                                                          "json");
-                        if (lengthNode != null && lengthNode.result().getValueAsInteger() > 0) {
-                            int length = lengthNode.result().getValueAsInteger();
-                            results = findElements("return obj.snapshotItem(arguments[0])", parentObjectId, length, targetIndex);
-                        }
-                    }
-                } else if (scriptNode.result().className() != null && scriptNode.result().className().equals("NodeList")
-                        || scriptNode.result().type() != null && scriptNode.result().type().equals("htmlcollection")) {
-                    int nodeListSize = scriptNode.result().getListSize();
-                    results = findElements("return obj[arguments[0]]", parentObjectId, nodeListSize, targetIndex);
-                }
-                return results;
-            }, results -> results != null && !results.isEmpty());
-        } catch (ConditionTimeoutException ignored) {
+            }
+        } else if (scriptNode.result().className() != null
+                && (scriptNode.result().className().equals("NodeList") || scriptNode.result().className().equals("HTMLCollection"))) {
+            int nodeListSize = scriptNode.result().getListSize();
+            elements = findElements("return obj[arguments[0]]", parentObjectId, nodeListSize, targetIndex);
         }
 
         return elements;
@@ -455,7 +431,10 @@ public class UCDriver extends RemoteWebDriver {
 
     @Override
     public Capabilities getCapabilities() {
-        throw new UnsupportedOperationException();
+        if (capabilities == null) {
+            capabilities = new ImmutableCapabilities();
+        }
+        return capabilities;
     }
 
     @Override
@@ -625,7 +604,7 @@ public class UCDriver extends RemoteWebDriver {
 
     private List<String> chromeOptionArguments() {
         List<String> arguments = new ArrayList<>();
-        arguments.add("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36");
+//        arguments.add("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36");
 
         arguments.add("--no-default-browser-check");
         arguments.add("--no-first-run");
