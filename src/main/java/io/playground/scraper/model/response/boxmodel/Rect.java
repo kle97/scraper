@@ -12,4 +12,13 @@ public record Rect(
         int clientWidth,
         int clientHeight
 ) {
+    
+    public static Rect defaultRect() {
+        return new Rect(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE, 
+                        Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE);
+    }
+    
+    public boolean isNotNull() {
+        return !this.equals(defaultRect());
+    }
 }

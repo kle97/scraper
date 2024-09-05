@@ -3,6 +3,7 @@ package io.playground.scraper;
 import io.playground.common.BaseTP;
 import io.playground.scraper.core.UCDriver;
 import io.playground.scraper.page.Pages;
+import io.playground.scraper.page.bet365.Bet365Page;
 import io.playground.scraper.page.detector.SeleniumDetectorPage;
 import io.playground.scraper.page.g2.G2HomePage;
 import io.playground.scraper.util.DriverUtil;
@@ -20,15 +21,22 @@ public class SeleniumTest extends BaseTP {
         UCDriver driver = new UCDriver();
         String url = "https://bet365.com";
         driver.get(url);
-        WebElement element = driver.findElement(By.xpath("//*[contains(text(), \"UEFA Champions League\")]"));
-        element.click();
-        DriverUtil.waitForLoadingToFinish(driver);
-        WebElement element2 = driver.findElement(By.xpath("//div[contains(text(), 'Upcoming Matches')]"));
-        WebElement element3 = driver.findElement(By.cssSelector(".wcl-PageContainer-scrollable"));
-        DriverUtil.scrollIntoView(element3, element2);
-        softly().as("Upcoming Matches title").assertThat(element2.getText()).isEqualTo("Upcoming Matches");
+        Bet365Page page = Pages.getBet365Page(driver);
+
+        softly().as("UEFA Champions League")
+                .assertThat(page.getUefaChampionsLeagueLabel())
+                .isEqualTo("UEFA Champions League");
+        
+        page.clickUefaChampionsLeague();
+        
+        page.scrollToUpcomingMatches();
+        
+        softly().as("Upcoming Matches title")
+                .assertThat(page.getUpcomingMatchesLabel())
+                .isEqualTo("Upcoming Matches");
+        
         Reporter.addScreenshot(driver, "screenshot-selenium");
-        driver.sleep(5000);
+        driver.sleep(1000);
         driver.quit();
     }
 

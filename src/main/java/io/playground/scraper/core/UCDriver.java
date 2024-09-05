@@ -77,6 +77,8 @@ public class UCDriver extends RemoteWebDriver {
     private final Process process;
     
     private final DevToolsClient client;
+    
+    private Path tempProfileFolderPath;
 
     private Capabilities capabilities;
 
@@ -343,90 +345,8 @@ public class UCDriver extends RemoteWebDriver {
         return new UCOptions(this);
     }
 
-    @Override
-    public void perform(Collection<Sequence> actions) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void resetInputState() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public VirtualAuthenticator addVirtualAuthenticator(VirtualAuthenticatorOptions options) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void removeVirtualAuthenticator(VirtualAuthenticator authenticator) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public List<String> getDownloadableFiles() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void downloadFile(String fileName, Path targetLocation) throws IOException {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void deleteDownloadableFiles() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void setDelayEnabled(boolean enabled) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void resetCooldown() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public FederatedCredentialManagementDialog getFederatedCredentialManagementDialog() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public FileDetector getFileDetector() {
-        return super.getFileDetector();
-    }
-
-    @Override
-    public void setFileDetector(FileDetector detector) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public String toString() {
-        return "UCDriver";
-    }
-
-    @Override
-    public void setLogLevel(Level level) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Script script() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Pdf print(PrintOptions printOptions) throws WebDriverException {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public List<WebElement> findElements(SearchContext context, BiFunction<String, Object, CommandPayload> findCommand,
-                                         By locator) {
-        throw new UnsupportedOperationException();
+    public void sleep(int sleepTimeInMs) {
+        SleepUtil.sleep(sleepTimeInMs);
     }
 
     @Override
@@ -438,23 +358,8 @@ public class UCDriver extends RemoteWebDriver {
     }
 
     @Override
-    public CommandExecutor getCommandExecutor() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void setErrorHandler(ErrorHandler handler) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public ErrorHandler getErrorHandler() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public SessionId getSessionId() {
-        throw new UnsupportedOperationException();
+    public String toString() {
+        return getClass().getSimpleName();
     }
     
     
@@ -531,7 +436,6 @@ public class UCDriver extends RemoteWebDriver {
         try {
             HttpRequest request = HttpRequest.newBuilder(new URI("http://" + debuggerUrl + "/json/list")).build();
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-//            log.info(response.body());
             PageInfo pageInfo = JacksonUtil.readValue(response.body(), new TypeReference<List<PageInfo>>(){})
                                            .stream()
                                            .filter(info -> info.url().toLowerCase().contains(url.toLowerCase()))
@@ -688,8 +592,9 @@ public class UCDriver extends RemoteWebDriver {
                 Map.entry("profile", profileMap)
                                                        );
         try {
-            Path tempFolderPath = Files.createTempDirectory("UCDriver-profile-");
-            Files.walkFileTree(tempFolderPath, new SimpleFileVisitor<>() {
+            Files.createDirectories(Path.of(Constant.TEMP_PROFILE_FOLDER_PATH));
+            tempProfileFolderPath = Files.createDirectories(Path.of(Constant.TEMP_PROFILE_FOLDER_PATH + "temp-profile-" + UUID.randomUUID()));
+            Files.walkFileTree(tempProfileFolderPath, new SimpleFileVisitor<>() {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
                     file.toFile().deleteOnExit();
@@ -701,33 +606,37 @@ public class UCDriver extends RemoteWebDriver {
                     return FileVisitResult.CONTINUE;
                 }
             });
-            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                try {
-                    Files.walkFileTree(tempFolderPath, new SimpleFileVisitor<>() {
-                        @Override
-                        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                            Files.delete(file);
-                            return FileVisitResult.CONTINUE;
-                        }
-                        @Override
-                        public FileVisitResult postVisitDirectory(Path dir, IOException e) throws IOException {
-                            if (e == null) {
-                                Files.delete(dir);
-                                return FileVisitResult.CONTINUE;
-                            }
-                            throw e;
-                        }
-                    });
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }));
-            String defaultFolder = tempFolderPath.toAbsolutePath() + FileSystems.getDefault().getSeparator() + "Default";
+            Runtime.getRuntime().addShutdownHook(new Thread(this::deleteTempProfile));
+            String defaultFolder = tempProfileFolderPath.toAbsolutePath() + FileSystems.getDefault().getSeparator() + "Default";
             Files.createDirectories(Path.of(defaultFolder));
             String preferencesFile = defaultFolder + FileSystems.getDefault().getSeparator() + "Preferences";
             Path preferencesPath = Path.of(preferencesFile);
             Files.write(preferencesPath, List.of(JacksonUtil.writeValueAsString(preferences)), StandardCharsets.UTF_8);
-            return tempFolderPath.toAbsolutePath().toString();
+            return tempProfileFolderPath.toAbsolutePath().toString();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    
+    private void deleteTempProfile() {
+        try {
+            if (tempProfileFolderPath != null) {
+                Files.walkFileTree(tempProfileFolderPath, new SimpleFileVisitor<>() {
+                    @Override
+                    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                        Files.delete(file);
+                        return FileVisitResult.CONTINUE;
+                    }
+                    @Override
+                    public FileVisitResult postVisitDirectory(Path dir, IOException e) throws IOException {
+                        if (e == null) {
+                            Files.delete(dir);
+                            return FileVisitResult.CONTINUE;
+                        }
+                        throw e;
+                    }
+                });
+            }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -741,14 +650,14 @@ public class UCDriver extends RemoteWebDriver {
             if (currentChromeVersion == null || currentChromeVersion.isEmpty()) {
                 currentChromeVersion = getChromeVersion();
             }
-            
+
             if (versionFile.exists()) {
                 List<String> lines = Files.readAllLines(versionFile.toPath());
                 if (!lines.isEmpty() && lines.getFirst().trim().equals(currentChromeVersion)) {
                     outOfSync = false;
                 }
             }
-            
+
             if (outOfSync) {
                 Files.write(versionFile.toPath(), List.of(currentChromeVersion), StandardCharsets.UTF_8);
             }
@@ -765,8 +674,105 @@ public class UCDriver extends RemoteWebDriver {
                 .withBuildCheckDisabled(true)
                 .build();
     }
-    
-    public void sleep(int sleepTimeInMs) {
-        SleepUtil.sleep(sleepTimeInMs);
+
+    @Override
+    public void perform(Collection<Sequence> actions) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void resetInputState() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public VirtualAuthenticator addVirtualAuthenticator(VirtualAuthenticatorOptions options) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void removeVirtualAuthenticator(VirtualAuthenticator authenticator) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public List<String> getDownloadableFiles() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void downloadFile(String fileName, Path targetLocation) throws IOException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void deleteDownloadableFiles() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setDelayEnabled(boolean enabled) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void resetCooldown() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public FileDetector getFileDetector() {
+        return super.getFileDetector();
+    }
+
+    @Override
+    public FederatedCredentialManagementDialog getFederatedCredentialManagementDialog() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setFileDetector(FileDetector detector) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setLogLevel(Level level) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Script script() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Pdf print(PrintOptions printOptions) throws WebDriverException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public List<WebElement> findElements(SearchContext context, BiFunction<String, Object, CommandPayload> findCommand,
+                                         By locator) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public CommandExecutor getCommandExecutor() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setErrorHandler(ErrorHandler handler) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public ErrorHandler getErrorHandler() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public SessionId getSessionId() {
+        throw new UnsupportedOperationException();
     }
 }
