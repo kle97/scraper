@@ -14,7 +14,7 @@ public record SerializedValue(
     
     public List<SerializedValue> getValueAsNode() {
         if (value.isArray()) {
-            return JacksonUtil.readValue(value, new TypeReference<List<SerializedValue>>() {});
+            return JacksonUtil.readValue(value, new TypeReference<>() {});
         } else if (value.isObject()) {
             return List.of(JacksonUtil.convertValue(value, SerializedValue.class));
         }

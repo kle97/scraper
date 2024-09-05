@@ -19,7 +19,7 @@ public class UCCoordinates implements Coordinates {
 
     @Override
     public Point inViewPort() {
-        element.getClient().scrollIntoViewIfNeeded(element.getId());
+
         return element.getLocation();
     }
 

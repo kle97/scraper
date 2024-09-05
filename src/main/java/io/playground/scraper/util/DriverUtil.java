@@ -3,14 +3,16 @@ package io.playground.scraper.util;
 import io.playground.scraper.core.DevToolsClient;
 import io.playground.scraper.core.UCDriver;
 import io.playground.scraper.core.UCElement;
+import io.playground.scraper.model.response.boxmodel.Rect;
 import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
 import org.openqa.selenium.By;
-import org.openqa.selenium.Rectangle;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.WrapsDriver;
+import org.openqa.selenium.remote.RemoteWebElement;
 
 import java.time.Duration;
+import java.util.Map;
 
 @Slf4j
 public class DriverUtil {
@@ -18,8 +20,8 @@ public class DriverUtil {
     private DriverUtil() {}
     
     public static void saveScreenshot(WebElement element, String title) {
-        if (element instanceof UCElement ucElement) {
-            ucElement.saveScreenshot(title);
+        if (((WrapsDriver) element).getWrappedDriver() instanceof UCDriver) {
+            ((UCElement) element).saveScreenshot(title);
         }
     }
 
@@ -39,8 +41,8 @@ public class DriverUtil {
     }
     
     public static void scrollIntoViewIfNeeded(WebElement element) {
-        if (element instanceof UCElement ucElement) {
-            ucElement.getClient().scrollIntoViewIfNeeded(ucElement.getId());
+        if (((WrapsDriver) element).getWrappedDriver() instanceof UCDriver ucDriver) {
+            ucDriver.getClient().scrollIntoViewIfNeeded(((RemoteWebElement) element).getId());
         }
     }
 
@@ -49,17 +51,50 @@ public class DriverUtil {
             WebElement container = ((WrapsDriver) element).getWrappedDriver().findElement(By.tagName("html"));
             scrollIntoView(container, element);
         } catch (Exception e) {
-            log.error(e.getMessage());
+            log.error(e.getMessage(), e);
         }
     }
 
+    public static Rect getRect(WebElement element) {
+        try {
+            if (((WrapsDriver) element).getWrappedDriver() instanceof UCDriver ucDriver) {
+                DevToolsClient client = ucDriver.getClient();
+                Rect elementRect = client.getRect(((RemoteWebElement) element).getId());
+                if (elementRect != null) {
+                    return elementRect;
+                }
+            }
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+        }
+        return new Rect(0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0);
+    }
+
     public static void scrollIntoView(WebElement container, WebElement element) {
+        try {
+            if (((WrapsDriver) container).getWrappedDriver() instanceof UCDriver ucDriver) {
+                DevToolsClient client = ucDriver.getClient();
+                Rect elementRect = client.getRect(((RemoteWebElement) element).getId());
+                if (elementRect != null) {
+                    String script = """
+                                    let elementRect = arguments[0];
+                                    obj.scrollTo(elementRect.x, elementRect.y);
+                                    """;
+                    client.executeScript(script, ((RemoteWebElement) container).getId(), Map.of("value", elementRect));
+                }
+            }
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+        }
+    }
+
+    public static void scrollIntoView2(WebElement container, WebElement element) {
         double scrollPercentage = 0.99;
-        Rectangle containerRect = container.getRect();
 
         try {
-            if (container instanceof UCElement && containerRect.height > 0 && containerRect.width > 0) {
-                DevToolsClient client = ((UCElement) container).getClient();
+            if (((WrapsDriver) container).getWrappedDriver() instanceof UCDriver ucDriver) {
+                DevToolsClient client = ucDriver.getClient();
 
                 int containerScrollLeft = Integer.parseInt(container.getDomProperty("scrollLeft"));
                 int containerScrollTop = Integer.parseInt(container.getDomProperty("scrollTop"));

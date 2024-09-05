@@ -29,6 +29,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
 import org.awaitility.core.ConditionFactory;
 import org.awaitility.core.ConditionTimeoutException;
+import org.openqa.selenium.remote.RemoteWebElement;
 
 import java.io.IOException;
 import java.net.URI;
@@ -294,6 +295,29 @@ public class DevToolsClient {
 
     public void close() {
         sendAndWait(DevToolsMethod.TARGET_CLOSE_TARGET, Map.of("targetId", getCurrentFrameId()));
+    }
+
+    public Rect getRect(String objectId) {
+        String script = """
+                        let rect = {
+                            x: obj.offsetLeft,
+                            y: obj.offsetTop,
+                            width: obj.offsetWidth,
+                            height: obj.offsetHeight,
+                            scrollLeft: obj.scrollLeft,
+                            scrollTop: obj.scrollTop,
+                            clientLeft: obj.clientLeft,
+                            clientTop: obj.clientTop,
+                            clientWidth: obj.clientWidth,
+                            clientHeight: obj.clientHeight,
+                        };
+                        return rect;
+                        """;
+        ScriptNode scriptNode = executeScript(script, objectId, "json");
+        if (scriptNode != null) {
+            return JacksonUtil.convertValue(scriptNode.result().value(), Rect.class);
+        }
+        return null;
     }
     
     public void reloadPage() {

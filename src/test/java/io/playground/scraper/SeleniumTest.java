@@ -79,7 +79,7 @@ public class SeleniumTest extends BaseTP {
                 .assertThat(page.getClaimG2ProfileButtonLabel())
                 .isEqualTo("Claim Your G2 Profile");
         Reporter.addScreenshot(driver, "testG2");
-        
+
         page.scrollToWriteAReviewButton();
         softly().as("Write a Review button label")
                 .assertThat(page.getWriteAReviewButtonLabel())
