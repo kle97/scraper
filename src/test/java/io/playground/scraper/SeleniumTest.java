@@ -6,11 +6,8 @@ import io.playground.scraper.page.Pages;
 import io.playground.scraper.page.bet365.Bet365Page;
 import io.playground.scraper.page.detector.SeleniumDetectorPage;
 import io.playground.scraper.page.g2.G2HomePage;
-import io.playground.scraper.util.DriverUtil;
 import io.playground.scraper.util.Reporter;
 import lombok.extern.slf4j.Slf4j;
-import org.openqa.selenium.By;
-import org.openqa.selenium.WebElement;
 import org.testng.annotations.Test;
 
 @Slf4j
