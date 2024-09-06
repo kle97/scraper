@@ -498,13 +498,18 @@ public class UCDriver extends RemoteWebDriver {
         options.setBrowserVersion("stable");
         DriverFinder finder = new DriverFinder(ChromeDriverService.createDefaultService(), options);
         String driverPath = finder.getDriverPath();
-        String[] tokens = driverPath.split(FileSystems.getDefault().getSeparator());
+        String[] tokens = driverPath.split(StringEscapeUtils.escapeJava(FileSystems.getDefault().getSeparator()));
         for (String token : tokens) {
-            if (token.matches("\\d\\.\\d")) {
+            if (token.matches("\\d+\\.\\d+\\.\\d+\\.\\d+")) {
                 return token;
             }
         }
         return "";
+    }
+
+    public static String getChromeMajorVersion() {
+        String[] tokens = getChromeVersion().split("\\.");
+        return tokens[0];
     }
 
     private List<String> chromeOptionArguments() {

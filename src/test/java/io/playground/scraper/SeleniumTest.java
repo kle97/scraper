@@ -14,6 +14,11 @@ import org.testng.annotations.Test;
 public class SeleniumTest extends BaseTP {
 
     @Test
+    public void test() {
+        log.info(UCDriver.getChromeMajorVersion());
+    }
+    
+    @Test
     public void testBet365() {
         UCDriver driver = new UCDriver();
         String url = "https://bet365.com";
