@@ -12,9 +12,11 @@ import com.aventstack.extentreports.reporter.ExtentSparkReporter;
 import io.playground.scraper.constant.AnsiColor;
 import io.playground.scraper.constant.Constant;
 import io.playground.scraper.core.UCDriver;
-import io.playground.scraper.core.UCElement;
 import lombok.extern.slf4j.Slf4j;
+import org.openqa.selenium.OutputType;
 import org.openqa.selenium.SearchContext;
+import org.openqa.selenium.TakesScreenshot;
+import org.openqa.selenium.WrapsDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
@@ -133,9 +135,18 @@ public class Reporter {
         return logWithoutLogger(Status.INFO, null, null, media);
     }
 
+    public static <T extends TakesScreenshot> ExtentTest addBase64Screenshot(T element, String title) {
+        try {
+            return addScreenshotFromBase64String(element.getScreenshotAs(OutputType.BASE64), title);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+        }
+        return null;
+    }
+
     public static <T extends SearchContext> ExtentTest addScreenshot(T element, String title) {
-        if (element instanceof UCElement ucElement) {
-            return addScreenshot(ucElement.saveScreenshot(title).toAbsolutePath().toString(), null);
+        if (element instanceof WrapsDriver wrapsDriver && wrapsDriver.getWrappedDriver() instanceof UCDriver) {
+            return addScreenshot(DriverUtil.getUCElement(element).saveScreenshot(title).toAbsolutePath().toString(), title);
         }
         return null;
     }

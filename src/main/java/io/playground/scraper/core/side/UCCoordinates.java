@@ -1,6 +1,7 @@
 package io.playground.scraper.core.side;
 
 import io.playground.scraper.core.UCElement;
+import io.playground.scraper.util.DriverUtil;
 import org.openqa.selenium.Point;
 import org.openqa.selenium.interactions.Coordinates;
 
@@ -19,7 +20,7 @@ public class UCCoordinates implements Coordinates {
 
     @Override
     public Point inViewPort() {
-
+        DriverUtil.scrollIntoView(element);
         return element.getLocation();
     }
 

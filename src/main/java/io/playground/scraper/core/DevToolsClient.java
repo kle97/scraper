@@ -2,9 +2,12 @@ package io.playground.scraper.core;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.playground.scraper.model.chromedevtools.BrowserInfo;
-import io.playground.scraper.model.chromedevtools.DevToolsPayload;
 import io.playground.scraper.model.chromedevtools.DevToolsMethod;
-import io.playground.scraper.model.response.*;
+import io.playground.scraper.model.chromedevtools.DevToolsPayload;
+import io.playground.scraper.model.response.IsolateWorld;
+import io.playground.scraper.model.response.ObjectNode;
+import io.playground.scraper.model.response.ResolvedNode;
+import io.playground.scraper.model.response.ScriptNode;
 import io.playground.scraper.model.response.boxmodel.BoxModel;
 import io.playground.scraper.model.response.boxmodel.Point;
 import io.playground.scraper.model.response.boxmodel.Rect;
@@ -29,7 +32,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
 import org.awaitility.core.ConditionFactory;
 import org.awaitility.core.ConditionTimeoutException;
-import org.openqa.selenium.remote.RemoteWebElement;
 
 import java.io.IOException;
 import java.net.URI;
@@ -88,6 +90,10 @@ public class DevToolsClient {
         }
         try {
             DevToolsPayload payload = JacksonUtil.readValue(message, DevToolsPayload.class);
+            if (payload.isError() || message.contains("exceptionDetails")) {
+                log.error("ErrorMessage[{}]", message);
+            }
+            
             if (payload.hasId()) {
                 messages.put(payload.getId(), payload);
             } else if (payload.isEvent()) {
@@ -126,11 +132,7 @@ public class DevToolsClient {
 
     public DevToolsPayload sendAndWait(DevToolsMethod method, Map<String, Object> params) {
         send(createPayload(method, params));
-        DevToolsPayload payload = await.until(() -> messages.get(requestId), Objects::nonNull);
-        if (payload != null && payload.isError()) {
-            log.error("[method={}][code={}][message={}]", method.getMethod(), payload.getError().code(), payload.getError().message());
-        }
-        return payload;
+        return await.until(() -> messages.get(requestId), Objects::nonNull);
     }
 
     public boolean waitForEvent(DevToolsMethod targetEvent, int from) {
@@ -299,11 +301,12 @@ public class DevToolsClient {
 
     public Rect getRect(String objectId) {
         String script = """
+                        let clientRect = obj.getBoundingClientRect();
                         let rect = {
-                            x: obj.offsetLeft,
-                            y: obj.offsetTop,
-                            width: obj.offsetWidth,
-                            height: obj.offsetHeight,
+                            x: clientRect.x,
+                            y: clientRect.y,
+                            width: clientRect.width,
+                            height: clientRect.height,
                             scrollLeft: obj.scrollLeft,
                             scrollTop: obj.scrollTop,
                             clientLeft: obj.clientLeft,

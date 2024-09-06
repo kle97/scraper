@@ -309,6 +309,7 @@ public class UCDriver extends RemoteWebDriver {
             client.quit();
         }
         stopBinary();
+        deleteTempProfile();
     }
 
     @Override
@@ -594,6 +595,21 @@ public class UCDriver extends RemoteWebDriver {
         try {
             Files.createDirectories(Path.of(Constant.TEMP_PROFILE_FOLDER_PATH));
             tempProfileFolderPath = Files.createDirectories(Path.of(Constant.TEMP_PROFILE_FOLDER_PATH + "temp-profile-" + UUID.randomUUID()));
+            setTempProfileForDeletion();
+            Runtime.getRuntime().addShutdownHook(new Thread(this::deleteTempProfile));
+            String defaultFolder = tempProfileFolderPath.toAbsolutePath() + FileSystems.getDefault().getSeparator() + "Default";
+            Files.createDirectories(Path.of(defaultFolder));
+            String preferencesFile = defaultFolder + FileSystems.getDefault().getSeparator() + "Preferences";
+            Path preferencesPath = Path.of(preferencesFile);
+            Files.write(preferencesPath, List.of(JacksonUtil.writeValueAsString(preferences)), StandardCharsets.UTF_8);
+            return tempProfileFolderPath.toAbsolutePath().toString();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    
+    private void setTempProfileForDeletion() {
+        try {
             Files.walkFileTree(tempProfileFolderPath, new SimpleFileVisitor<>() {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
@@ -606,15 +622,8 @@ public class UCDriver extends RemoteWebDriver {
                     return FileVisitResult.CONTINUE;
                 }
             });
-            Runtime.getRuntime().addShutdownHook(new Thread(this::deleteTempProfile));
-            String defaultFolder = tempProfileFolderPath.toAbsolutePath() + FileSystems.getDefault().getSeparator() + "Default";
-            Files.createDirectories(Path.of(defaultFolder));
-            String preferencesFile = defaultFolder + FileSystems.getDefault().getSeparator() + "Preferences";
-            Path preferencesPath = Path.of(preferencesFile);
-            Files.write(preferencesPath, List.of(JacksonUtil.writeValueAsString(preferences)), StandardCharsets.UTF_8);
-            return tempProfileFolderPath.toAbsolutePath().toString();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        } catch (Exception e) {
+//            log.error(e.getMessage(), e);
         }
     }
     
@@ -638,7 +647,7 @@ public class UCDriver extends RemoteWebDriver {
                 });
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+//            log.error(e.getMessage(), e);
         }
     }
 

@@ -19,11 +19,11 @@ public class DriverUtil {
     private DriverUtil() {}
     
     public static <T extends SearchContext> UCElement getUCElement(T element) {
-        if (element instanceof WrapsDriver wrapsDriver && wrapsDriver.getWrappedDriver() instanceof UCDriver) {
+        if (element instanceof WrapsDriver wrapsDriver && wrapsDriver.getWrappedDriver() instanceof UCDriver ucDriver) {
             if (element instanceof RemoteWebElement) {
-                return (UCElement) element;
+                return new UCElement(ucDriver, ((RemoteWebElement) element).getId());
             } else if (element instanceof WrapsElement wrapsElement) {
-                return (UCElement) wrapsElement.getWrappedElement();
+                return new UCElement(ucDriver, ((RemoteWebElement) wrapsElement.getWrappedElement()).getId());
             }
         }
         throw new RuntimeException("The target element is not of type " + UCElement.class + "!");

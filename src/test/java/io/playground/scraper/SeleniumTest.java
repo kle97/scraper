@@ -32,7 +32,7 @@ public class SeleniumTest extends BaseTP {
                 .assertThat(page.getUpcomingMatchesLabel())
                 .isEqualTo("Upcoming Matches");
         
-        Reporter.addScreenshot(driver, "screenshot-selenium");
+        Reporter.addBase64Screenshot(driver, "screenshot-selenium");
         driver.sleep(1000);
         driver.quit();
     }
@@ -60,8 +60,7 @@ public class SeleniumTest extends BaseTP {
         softly().as("status2").assertThat(page.getTestStatus()).isEqualTo("Passed!");
         page.takeTestStatusScreenshot();
 
-        Reporter.addScreenshot(driver, "screenshot-selenium");
-        driver.sleep(5000);
+        Reporter.addBase64Screenshot(driver, "screenshot-selenium");
         driver.quit();
     }
 
@@ -77,24 +76,24 @@ public class SeleniumTest extends BaseTP {
         softly().as("Software Reviews button label")
                 .assertThat(page.getSoftwareReviewsButtonLabel())
                 .isEqualTo("Software Reviews");
-        Reporter.addScreenshot(driver, "testG2");
+        Reporter.addBase64Screenshot(driver, "testG2");
 
         page.scrollToClaimG2ProfileButton();
         softly().as("Claim G2 Profile button label")
                 .assertThat(page.getClaimG2ProfileButtonLabel())
                 .isEqualTo("Claim Your G2 Profile");
-        Reporter.addScreenshot(driver, "testG2");
+        Reporter.addBase64Screenshot(driver, "testG2");
 
         page.scrollToWriteAReviewButton();
         softly().as("Write a Review button label")
                 .assertThat(page.getWriteAReviewButtonLabel())
                 .isEqualTo("Write a Review");
-        Reporter.addScreenshot(driver, "testG2");
+        Reporter.addBase64Screenshot(driver, "testG2");
 
         page.scrollToSoftwareReviewsButton();
         page.clickSoftwareReviewsButton();
         
-        Reporter.addScreenshot(driver, "testG2");
+        Reporter.addBase64Screenshot(driver, "testG2");
         driver.quit();
     }
 }

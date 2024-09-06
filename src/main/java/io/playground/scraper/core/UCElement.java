@@ -3,10 +3,11 @@ package io.playground.scraper.core;
 import io.playground.scraper.core.side.UCCoordinates;
 import io.playground.scraper.model.response.ObjectNode;
 import io.playground.scraper.model.response.ScriptNode;
-import io.playground.scraper.model.response.boxmodel.BoxModel;
 import io.playground.scraper.model.response.boxmodel.Point;
+import io.playground.scraper.model.response.boxmodel.Rect;
 import io.playground.scraper.model.response.css.CSSStyle;
 import io.playground.scraper.model.response.screenshot.ViewPort;
+import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.*;
 import org.openqa.selenium.interactions.Coordinates;
 import org.openqa.selenium.remote.RemoteWebElement;
@@ -16,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
+@Slf4j
 public class UCElement extends RemoteWebElement {
     
     private int nodeId = -1;
@@ -145,8 +147,22 @@ public class UCElement extends RemoteWebElement {
 
     @Override
     public boolean isDisplayed() {
-        Rectangle rect = getRect();
-        return !Boolean.parseBoolean(getDomProperty("hidden")) && rect.width > 0 && rect.height > 0;
+        String script = """
+                let html = document.getElementsByTagName('html')[0];
+                if (html) {
+                    let rect = obj.getBoundingClientRect();
+                    return rect.bottom >= 0 && rect.right >= 0
+                        && rect.top <= (window.innerHeight || html.clientHeight)
+                        && rect.left <= (window.innerWidth || html.clientWidth)
+                }
+                """;
+        ScriptNode scriptNode = client.executeScript(script, getId(), "json");
+        if (scriptNode != null) {
+            if (scriptNode.result().value() != null) {
+                return scriptNode.result().getValueAsBoolean();
+            }
+        }
+        return false;
     }
 
     @Override
@@ -202,9 +218,8 @@ public class UCElement extends RemoteWebElement {
     @Override
     public org.openqa.selenium.Point getLocation() {
         try {
-            int x = Integer.parseInt(getDomProperty("clientLeft"));
-            int y = Integer.parseInt(getDomProperty("clientTop"));
-            return new org.openqa.selenium.Point(x, y);
+            Rectangle rectangle = getRect();
+            return new org.openqa.selenium.Point(rectangle.x, rectangle.y);
         } catch (Exception ignored) {
         }
         return new org.openqa.selenium.Point(0, 0);
@@ -212,23 +227,20 @@ public class UCElement extends RemoteWebElement {
 
     @Override
     public Dimension getSize() {
-        BoxModel boxModel = client.getBoxModel(super.getId());
-        if (boxModel != null) {
-            return new Dimension((int) boxModel.model().width(), (int) boxModel.model().height());
+        Rect rect = client.getRect(super.getId());
+        if (rect != null) {
+            return new Dimension(rect.width(), rect.height());
         }
         return new Dimension(0, 0);
     }
 
     @Override
     public Rectangle getRect() {
-        BoxModel boxModel = client.getBoxModel(super.getId());
-        if (boxModel != null) {
-            return new Rectangle(Math.abs((int) boxModel.model().getTopLeft().x()),
-                                 Math.abs((int) boxModel.model().getTopLeft().y()),
-                                 Math.abs((int) boxModel.model().height()),
-                                 Math.abs((int) boxModel.model().width()));
+        Rect rect = client.getRect(super.getId());
+        if (rect != null) {
+            return new Rectangle(rect.x(), rect.y(), rect.height(), rect.width());
         }
-        return new Rectangle(new org.openqa.selenium.Point(0, 0), new Dimension(0, 0));
+        return new Rectangle(0, 0, 0, 0);
     }
 
     @Override
@@ -248,13 +260,9 @@ public class UCElement extends RemoteWebElement {
     }
 
     public Path saveScreenshot(String title) {
-        BoxModel boxModel = client.getBoxModel(super.getId());
-        if (boxModel != null) {
-            Point topLeft = boxModel.model().getTopLeft();
-            ViewPort viewPort = new ViewPort(topLeft.x(), topLeft.y(),
-                                             (int) boxModel.model().width(),
-                                             (int) boxModel.model().height(),
-                                             1.0);
+        Rect rect = client.getRect(super.getId());
+        if (rect != null) {
+            ViewPort viewPort = new ViewPort((double) rect.x(), (double) rect.y(), rect.width(), rect.height(), 1.0);
             return driver.saveScreenshot(title, viewPort);
         }
         return driver.saveScreenshot(title);
@@ -262,13 +270,9 @@ public class UCElement extends RemoteWebElement {
 
     @Override
     public <X> X getScreenshotAs(OutputType<X> outputType) throws WebDriverException {
-        BoxModel boxModel = client.getBoxModel(super.getId());
-        if (boxModel != null) {
-            Point topLeft = boxModel.model().getTopLeft();
-            ViewPort viewPort = new ViewPort(topLeft.x(), topLeft.y(), 
-                                             (int) boxModel.model().width(),
-                                             (int) boxModel.model().height(),
-                                             1.0);
+        Rect rect = client.getRect(super.getId());
+        if (rect != null) {
+            ViewPort viewPort = new ViewPort((double) rect.x(), (double) rect.y(), rect.width(), rect.height(), 1.0);
             return driver.getScreenshotAs(outputType, viewPort);
         }
         return driver.getScreenshotAs(outputType);
@@ -290,9 +294,9 @@ public class UCElement extends RemoteWebElement {
 
     @Override
     public void click() {
-        BoxModel boxModel = client.getBoxModel(getId());
-        if (boxModel != null) {
-            Point center = boxModel.model().getCenter();
+        Rect rect = client.getRect(getId());
+        if (rect != null) {
+            Point center = rect.getCenter();
             moveMouseTo(center);
             client.clickMouse(center);
         }

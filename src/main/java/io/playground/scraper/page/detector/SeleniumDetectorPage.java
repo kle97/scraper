@@ -35,7 +35,7 @@ public class SeleniumDetectorPage extends BasePage {
     }
 
     public void takeTestStatusScreenshot() {
-        Reporter.addScreenshot(status, "TestStatus");
+        Reporter.addBase64Screenshot(status, "TestStatus");
     }
 
     public void enterWindowToken(String windowToken) {

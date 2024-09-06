@@ -21,4 +21,10 @@ public record Rect(
     public boolean isNotNull() {
         return !this.equals(defaultRect());
     }
+
+    public Point getCenter() {
+        double centerX = x + (double) width / 2;
+        double centerY = y + (double) height / 2;
+        return new Point(centerX, centerY);
+    }
 }
