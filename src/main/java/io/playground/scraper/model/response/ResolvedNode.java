@@ -1,6 +1,6 @@
 package io.playground.scraper.model.response;
 
-import io.playground.scraper.core.UCDriver;
+import io.playground.scraper.constant.Constant;
 import io.playground.scraper.model.response.value.SerializedValue;
 
 import java.util.regex.Matcher;
@@ -71,7 +71,7 @@ public record ResolvedNode(
             }
         } catch (Exception ignored) {
         }
-        return UCDriver.ELEMENT_NOT_FOUND;
+        return Constant.ELEMENT_NOT_FOUND;
     }
 
     public int getValueAsInteger() {

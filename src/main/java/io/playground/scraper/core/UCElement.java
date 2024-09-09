@@ -1,5 +1,6 @@
 package io.playground.scraper.core;
 
+import io.playground.scraper.constant.Constant;
 import io.playground.scraper.core.side.UCCoordinates;
 import io.playground.scraper.model.response.ObjectNode;
 import io.playground.scraper.model.response.ScriptNode;
@@ -97,7 +98,7 @@ public class UCElement extends RemoteWebElement {
             }
         } catch (Exception ignored) {
         }
-        return UCDriver.ELEMENT_NOT_FOUND;
+        return Constant.ELEMENT_NOT_FOUND;
     }
 
     @Override
@@ -112,7 +113,7 @@ public class UCElement extends RemoteWebElement {
             }
         } catch (Exception ignored){
         }
-        return UCDriver.ELEMENT_NOT_FOUND;
+        return Constant.ELEMENT_NOT_FOUND;
     }
 
     @Override
@@ -168,10 +169,10 @@ public class UCElement extends RemoteWebElement {
     @Override
     public String getText() {
         String text = getDomProperty("value");
-        if (text.equals(UCDriver.ELEMENT_NOT_FOUND)) {
+        if (text.equals(Constant.ELEMENT_NOT_FOUND)) {
             text = getDomProperty("outerText");
         }
-        if (text.equals(UCDriver.ELEMENT_NOT_FOUND)) {
+        if (text.equals(Constant.ELEMENT_NOT_FOUND)) {
             text = getDomProperty("innerText");
         }
         return text;
@@ -187,7 +188,7 @@ public class UCElement extends RemoteWebElement {
             }
         } catch (Exception ignored) {
         }
-        return UCDriver.ELEMENT_NOT_FOUND;
+        return Constant.ELEMENT_NOT_FOUND;
     }
 
     @Override

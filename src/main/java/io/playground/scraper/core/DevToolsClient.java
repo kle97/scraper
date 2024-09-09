@@ -49,6 +49,7 @@ public class DevToolsClient {
                                                             .ignoreExceptions();
     private final String endpoint;
     private final boolean logEvents;
+    private final UCDriverOptions ucDriverOptions;
     private int requestId;
     private Session session;
     private final Map<Integer, DevToolsPayload> messages = new ConcurrentHashMap<>();
@@ -62,14 +63,15 @@ public class DevToolsClient {
     private int currentExecutionContextId;
 
     public DevToolsClient(String endpoint) {
-        this(endpoint, false);
+        this(endpoint, UCDriverOptions.builder().build());
     }
 
-    public DevToolsClient(String endpoint, boolean logEvents) {
+    public DevToolsClient(String endpoint, UCDriverOptions ucDriverOptions) {
         try {
             Runtime.getRuntime().addShutdownHook(new Thread(this::quit));
             this.endpoint = endpoint;
-            this.logEvents = logEvents;
+            this.ucDriverOptions = ucDriverOptions;
+            this.logEvents = ucDriverOptions.isLogCDPEvents();
             WebSocketContainer container = ContainerProvider.getWebSocketContainer();
             container.connectToServer(this, new URI(endpoint));
         } catch (Exception e) {
@@ -86,7 +88,11 @@ public class DevToolsClient {
     @OnMessage
     public void onMessage(String message) {
         if (logEvents) {
-            log.info("Received from ChromeDevTools: {}", message);
+            if (message.length() < 1000) {
+                log.info("Received from ChromeDevTools: {}", message);
+            } else {
+                log.info("Received from ChromeDevTools: {}...", message.substring(0, 1000));
+            }
         }
         try {
             DevToolsPayload payload = JacksonUtil.readValue(message, DevToolsPayload.class);
@@ -97,6 +103,16 @@ public class DevToolsClient {
             if (payload.hasId()) {
                 messages.put(payload.getId(), payload);
             } else if (payload.isEvent()) {
+                if (payload.getMethod().contains("Fetch") && payload.hasParam() && payload.getParams().containsKey("requestId")) {
+                    String requestId = (String) payload.getParams().get("requestId");
+                    if (payload.getMethod().equals(DevToolsMethod.FETCH_AUTH_REQUIRED.getMethod())) {
+                        fetchContinueWithAuth(requestId, ucDriverOptions.getProxyUsername(), ucDriverOptions.getProxyPassword());
+                    } else {
+                        fetchContinueRequest(requestId);
+                    }
+                    return;
+                }
+                
                 events.add(payload);
                 if (payload.getMethod().equals(DevToolsMethod.PAGE_LOAD_EVENT_FIRED.getMethod()) 
 //                        || payload.getMethod().equals(DevToolsMethod.PAGE_FRAME_STOPPED_LOADING.getMethod())
@@ -119,6 +135,10 @@ public class DevToolsClient {
         if (logEvents) {
             log.info("Sent message '{}' to server '{}'!", message, endpoint);
         }
+    }
+
+    public void send(DevToolsMethod method, Map<String, Object> params) {
+        send(createPayload(method, params));
     }
 
     public DevToolsPayload sendAndWait(String message) {
@@ -232,6 +252,10 @@ public class DevToolsClient {
         return null;
     }
     
+    public void emulationSetTimeZoneOverride(String timezoneId) {
+        sendAndWait(DevToolsMethod.EMULATION_SET_TIME_ZONE_OVERRIDE, Map.of("timezoneId", timezoneId));
+    }
+    
     public WindowInfo getWindowForTarget(String targetId) {
         DevToolsPayload payload = sendAndWait(DevToolsMethod.BROWSER_GET_WINDOW_FOR_TARGET, Map.of("targetId", targetId));
         if (payload.isResult()) {
@@ -293,6 +317,29 @@ public class DevToolsClient {
             log.error(e.getMessage());
         }
         return navigated;
+    }
+    
+    public void enableFetch() {
+        enableFetch("*");
+    }
+
+    public void enableFetch(String pattern) {
+        sendAndWait(DevToolsMethod.FETCH_ENABLE, Map.of("patterns", List.of(Map.of("urlPattern", pattern)), "handleAuthRequests", true));
+    }
+
+    public void fetchContinueResponse(String requestId) {
+        send(DevToolsMethod.FETCH_CONTINUE_RESPONSE, Map.of("requestId", requestId));
+    }
+
+    public void fetchContinueRequest(String requestId) {
+        send(DevToolsMethod.FETCH_CONTINUE_REQUEST, Map.of("requestId", requestId));
+    }
+
+    public void fetchContinueWithAuth(String requestId, String username, String password) {
+        send(DevToolsMethod.FETCH_CONTINUE_WITH_AUTH, Map.of("requestId", requestId, "authChallengeResponse", 
+                                                                  Map.of("response", "ProvideCredentials",
+                                                                         "username", username,
+                                                                         "password", password)));
     }
 
     public void close() {

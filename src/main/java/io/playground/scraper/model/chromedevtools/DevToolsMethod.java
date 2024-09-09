@@ -33,7 +33,9 @@ public enum DevToolsMethod {
     DOM_PERFORM_SEARCH("DOM.performSearch"),
     
     CCS_GET_COMPUTED_STYLE_FOR_NODE("CSS.getComputedStyleForNode"),
-
+    
+    NETWORK_ENABLE("Network.enable"),
+    NETWORK_AUTH_CHALLENGE_RESPONSE("Network.AuthChallengeResponse"),
     NETWORK_SET_COOKIE("Network.setCookie"),
     NETWORK_SET_COOKIES("Network.setCookies"),
     NETWORK_GET_COOKIES("Network.getCookies"),
@@ -42,6 +44,8 @@ public enum DevToolsMethod {
     NETWORK_SET_BYPASS_SERVICE_WOKER("Network.setBypassServiceWorker"),
 
     STORAGE_SET_COOKIES("Storage.setCookies"),
+    
+    EMULATION_SET_TIME_ZONE_OVERRIDE("Emulation.setTimezoneOverride"),
 
     FETCH_GET_RESPONSE_BODY("Fetch.getResponseBody"),
     FETCH_CONTINUE_RESPONSE("Fetch.continueResponse"),
@@ -51,6 +55,7 @@ public enum DevToolsMethod {
     FETCH_CONTINUE_WITH_AUTH("Fetch.continueWithAuth"),
     FETCH_ENABLE("Fetch.enable"),
     FETCH_DISABLE("Fetch.disable"),
+    FETCH_AUTH_REQUIRED("Fetch.authRequired"),
 
     OVERLAY_ENABLE("Overlay.enable"),
     OVERLAY_DISABLE("Overlay.disable"),
