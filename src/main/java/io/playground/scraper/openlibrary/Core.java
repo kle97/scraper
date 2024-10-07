@@ -69,109 +69,99 @@ public class Core {
         List<Work> works = new ArrayList<>();
         try (BufferedReader reader = Files.newBufferedReader(latestWorkPath, ENCODING)) {
             String line;
-            int firstPublishDate = 0;
-            int firstSentence = 0;
-            int description = 0;
-            int deweyNumber = 0;
-            int lcClassifications = 0;
-            int originalLanguage = 0;
-            int otherTitles = 0;
-            int links = 0;
-            int notes = 0;
-            int translatedTitles = 0;
-            int subtitle = 0;
             while ((line = reader.readLine()) != null) {
-                if (line.contains("cover_edition")) {
-//                    log.info(line);
-                } else if (line.contains("\"first_publish_date\": ")) {
-                    firstPublishDate++;
-                    if (firstPublishDate == 1) {
-                        log.info(line);
-                    }
-                } else if (line.contains("\"first_sentence\": {")) {
-                    firstSentence++;
-                    if (firstSentence == 1) {
-                        log.info(line);
-                    }
-                } else if (line.contains("\"description\": {")) {
-                    description++;
-                    if (description == 1) {
-                        log.info(line);
-                    }
-                } else if (line.contains("\"dewey_number\": ")) {
-                    deweyNumber++;
-                    if (deweyNumber == 1) {
-                        log.info(line);
-                    }
-                } else if (line.contains("\"lc_classifications\": ")) {
-                    lcClassifications++;
-                    if (lcClassifications == 1) {
-                        log.info(line);
-                    }
-                } else if (line.contains("\"original_languages\": ")) {
-                    originalLanguage++;
-                    if (originalLanguage == 1) {
-                        log.info(line);
-                    }
-                } else if (line.contains("\"other_titles\": ")) {
-                    otherTitles++;
-                    if (otherTitles == 1) {
-                        log.info(line);
-                    }
-                } else if (line.contains("\"links\": ")) {
-                    links++;
-                    if (links == 1) {
-                        log.info(line);
-                    }
-                } else if (line.contains("\"notes\": {")) {
-                    notes++;
-                    if (notes == 1) {
-                        log.info(line);
-                    }
-                } else if (line.contains("\"translated_titles\": ")) {
-                    translatedTitles++;
-                    if (translatedTitles == 1) {
-                        log.info(line);
-                    }
-                } else if (line.contains("\"subtitle\": {")) {
-                    subtitle++;
-                    if (subtitle == 1) {
-                        log.info(line);
+                String key = line.substring(line.indexOf("/works"), line.indexOf("W") + 1);
+                line = line.substring(line.indexOf("{"));
+                if (!workIdMap.containsKey(key)) {
+                    Work work = JacksonUtil.readValue(line, Work.class);
+                    if (!work.type().toLowerCase().contains("redirect")) {
+                        works.add(work);
                     }
                 }
-//                String key = line.substring(line.indexOf("/works"), line.indexOf("W") + 1);
-//                line = line.substring(line.indexOf("{"));
-//                if (!authorIdMap.containsKey(key)) {
-//                    Work work = JacksonUtil.readValue(line, Work.class);
-//                    if (!work.type().toLowerCase().contains("redirect")) {
-//                        works.add(work);
-//                    }
-//                }
             }
-            log.info("firstPublishDate {}", firstPublishDate);
-            log.info("firstSentence {}", firstSentence);
-            log.info("description {}", description);
-            log.info("deweyNumber {}", deweyNumber);
-            log.info("lcClassifications {}", lcClassifications);
-            log.info("originalLanguage {}", originalLanguage);
-            log.info("otherTitles {}", otherTitles);
-            log.info("links {}", links);
-            log.info("notes {}", notes);
-            log.info("translatedTitles {}", translatedTitles);
-            log.info("subtitle {}", subtitle);
         }
 
         long stopTime = System.currentTimeMillis();
         log.info("Reading dump file elapsed time: {}", (stopTime - startTime));
+        
+        
+        if (works.isEmpty()) {
+            return;
+        }
+        startTime = System.currentTimeMillis();
+        works.sort(Comparator.comparing(Work::olKey));
+        
+        String timeStamp = DateTimeFormatter.ofPattern("MM-dd-yyyy-HH-mm-ss")
+                                            .withZone(ZoneId.systemDefault())
+                                            .format(Instant.now());
+        String directoryPath = OPEN_LIBRARY_PROCESSED_PATH + "work-" + timeStamp + Constant.SEPARATOR;
+        File directory = new File(directoryPath);
+        Files.createDirectories(directory.toPath());
+
+        int workId = workIdMap.getOrDefault("lastId", 0);
+        int index = 0;
+        int lastIndex;
+        String header = "title,subtitle,description,first_sentence,dewey_number,lc_classifications,cover,ol_key,author_id";
+
+        while (index < works.size()) {
+            lastIndex = index;
+            index = Math.min(lastIndex + MAX_ENTRY_PER_FILE, works.size());
+            String workCsvFile = directoryPath + "work-" + index + ".csv";
+            String workSubjectCsvFile = directoryPath + "work-subject-" + index + ".csv";
+            String workAuthorsCsvFile = directoryPath + "work-author-" + index + ".csv";
+            try (BufferedWriter writer1 = Files.newBufferedWriter(Path.of(workCsvFile), ENCODING);
+                 BufferedWriter writer2 = Files.newBufferedWriter(Path.of(workSubjectCsvFile), ENCODING);
+                 BufferedWriter writer3 = Files.newBufferedWriter(Path.of(workAuthorsCsvFile), ENCODING)){
+                writer1.write(header);
+                writer1.newLine();
+                writer2.write("name,work_id");
+                writer2.newLine();
+                writer3.write("author_id,work_id");
+                writer3.newLine();
+                for(int i = lastIndex; i < index; i++) {
+                    Work work = works.get(i);
+                    String value = toData(work.title()) + toData(work.subtitle()) + toData(work.description())
+                            + toData(work.firstSentence()) + toData(work.deweyNumber()) + toData(work.lcClassification())
+                            + toData(work.cover()) + toData(work.key(), true);
+                    writer1.write(value);
+                    writer1.newLine();
+                    workId++;
+                    workIdMap.put("/works/OL" + work.olKey() + "W", workId);
+
+                    if (work.subjects() != null && !work.subjects().isEmpty()) {
+                        for (String subject : work.subjects()) {
+                            writer2.write(toData(subject) + workId);
+                            writer2.newLine();
+                        }
+                    }
+
+                    if (work.authors() != null && !work.authors().isEmpty()) {
+                        for (String authorOlKey : work.authors()) {
+                            writer3.write(toData(String.valueOf(authorIdMap.get(authorOlKey))) + workId);
+                            writer3.newLine();
+                        }
+                    }
+                }
+            }
+        }
+        workIdMap.put("lastId", workId);
+
+        try (BufferedWriter writer = Files.newBufferedWriter(Path.of(OPEN_LIBRARY_WORK_ID_MAP_PATH), ENCODING)) {
+            writer.write(JacksonUtil.writeValueAsString(workIdMap));
+            writer.newLine();
+        }
+        
+        stopTime = System.currentTimeMillis();
+        log.info("Sorting and processing elapsed time: {}", (stopTime - startTime));
     }
     
     public static void processAuthor() throws IOException {
         long startTime = System.currentTimeMillis();
 
-        Map<String, Integer> authorIdMap = new HashMap<>();
+        Map<Integer, Integer> authorIdMap = new HashMap<>();
         File authorIdMapFile = new File(OPEN_LIBRARY_AUTHOR_ID_MAP_PATH);
         if (authorIdMapFile.exists()) {
-            authorIdMap = JacksonUtil.parseJsonFileAsMap(OPEN_LIBRARY_AUTHOR_ID_MAP_PATH, String.class, Integer.class);
+            authorIdMap = JacksonUtil.parseJsonFileAsMap(OPEN_LIBRARY_AUTHOR_ID_MAP_PATH, Integer.class, Integer.class);
         }
 
         List<Path> paths;
@@ -193,7 +183,7 @@ public class Core {
             while ((line = reader.readLine()) != null) {
                 String key = line.substring(line.indexOf("/authors"), line.indexOf("A") + 1);
                 line = line.substring(line.indexOf("{"));
-                if (!authorIdMap.containsKey(key)) {
+                if (!authorIdMap.containsKey(Integer.parseInt(key.substring(key.indexOf("OL") + 2, key.indexOf("A"))))) {
                     Author author = JacksonUtil.readValue(line, Author.class);
                     authors.add(author);
                 }
@@ -218,7 +208,7 @@ public class Core {
         File directory = new File(directoryPath);
         Files.createDirectories(directory.toPath());
 
-        int authorId = authorIdMap.getOrDefault("lastId", 0);
+        int authorId = authorIdMap.getOrDefault("-1", 0);
         int index = 0;
         int lastIndex;
         String header = "name,birth_date,death_date,date,bio,photo,ol_key";
@@ -231,7 +221,7 @@ public class Core {
             String authorLinkCsvFile = directoryPath + "author-link-" + index + ".csv";
             try (BufferedWriter writer1 = Files.newBufferedWriter(Path.of(authorCsvFile), ENCODING);
                  BufferedWriter writer2 = Files.newBufferedWriter(Path.of(authorAlternateNameCsvFile), ENCODING);
-                 BufferedWriter writer3 = Files.newBufferedWriter(Path.of(authorLinkCsvFile), ENCODING)){
+                 BufferedWriter writer3 = Files.newBufferedWriter(Path.of(authorLinkCsvFile), ENCODING)) {
                 writer1.write(header);
                 writer1.newLine();
                 writer2.write("name,author_id");
@@ -246,7 +236,7 @@ public class Core {
                     writer1.write(value);
                     writer1.newLine();
                     authorId++;
-                    authorIdMap.put("/authors/OL" + author.olKey() + "A", authorId);
+                    authorIdMap.put(author.olKey(), authorId);
 
                     if (author.alternateNames() != null && !author.alternateNames().isEmpty()) {
                         for (String alternateName : author.alternateNames()) {
@@ -264,7 +254,7 @@ public class Core {
                 }
             }
         }
-        authorIdMap.put("lastId", authorId);
+        authorIdMap.put(-1, authorId);
 
         try (BufferedWriter writer = Files.newBufferedWriter(Path.of(OPEN_LIBRARY_AUTHOR_ID_MAP_PATH), ENCODING)) {
             writer.write(JacksonUtil.writeValueAsString(authorIdMap));
@@ -275,8 +265,8 @@ public class Core {
     }
 
     public static void main(String[] args) throws IOException {
-//        processAuthor();
-        processWork();
+        processAuthor();
+//        processWork();
     }
     
     public static void clearProcessedFiles() {
@@ -321,7 +311,7 @@ public class Core {
                 if (bioNode.isTextual()) {
                     return bioNode.asText().replaceAll("\\r|\\n|\\r\\n", " ");
                 } else if (bioNode.isObject()) {
-                    return JacksonUtil.readValue(bioNode, NodeTypeValue.class).value().replaceAll("\\r|\\n|\\r\\n", " ");
+                    return JacksonUtil.readValue(bioNode, NodeTypeValue.class).value();
                 }
             }
             return null;
@@ -353,7 +343,7 @@ public class Core {
                        @JsonProperty("authors") List<AuthorNode> authorNodes,
                        @JsonProperty("type") NodeKey typeNode,
                        String notes,
-                       List<String> deweyNumber,
+                       @JsonProperty("deweyNumber") List<String> deweyNumbers,
                        List<String> lcClassifications,
                        List<String> subjects,
                        List<String> subjectPlaces,
@@ -366,6 +356,27 @@ public class Core {
 
         public String type() {
             return typeNode.key();
+        }
+
+        public String deweyNumber() {
+            if (deweyNumbers != null && !deweyNumbers.isEmpty()) {
+                return deweyNumbers.get(0);
+            }
+            return null;
+        }
+
+        public String lcClassification() {
+            if (lcClassifications != null && !lcClassifications.isEmpty()) {
+                return lcClassifications.get(0);
+            }
+            return null;
+        }
+
+        public String cover() {
+            if (covers != null && !covers.isEmpty()) {
+                return covers.get(0);
+            }
+            return null;
         }
 
         public String description() {
@@ -388,6 +399,10 @@ public class Core {
                 }
             }
             return null;
+        }
+
+        public int olKey() {
+            return Integer.parseInt(key.substring(key.indexOf("OL") + 2, key.indexOf("W")));
         }
 
     }
