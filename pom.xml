@@ -26,6 +26,7 @@
         <lombokVersion>1.18.34</lombokVersion>
         <logbackVersion>1.5.6</logbackVersion>
         <slf4jVersion>2.0.14</slf4jVersion>
+        <nvi18nVersion>1.29</nvi18nVersion>
 
         <mavenSurefirePluginVersion>3.3.1</mavenSurefirePluginVersion>
         <mavenFailsafePluginVersion>3.3.1</mavenFailsafePluginVersion>
@@ -123,6 +124,12 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>${slf4jVersion}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.neovisionaries</groupId>
+            <artifactId>nv-i18n</artifactId>
+            <version>${nvi18nVersion}</version>
         </dependency>
     </dependencies>
 
