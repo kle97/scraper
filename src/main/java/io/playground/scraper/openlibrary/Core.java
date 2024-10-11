@@ -23,7 +23,10 @@ import java.nio.file.StandardOpenOption;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -106,10 +109,12 @@ public class Core {
         File directory = new File(directoryPath);
         Files.createDirectories(directory.toPath());
         String workCsvFile = directoryPath + "edition" + ".csv";
+        String leftoverFile = directoryPath + "leftover" + ".txt";
 
         try (BufferedReader reader = Files.newBufferedReader(latestEditionPath, ENCODING);
              BufferedWriter writer = Files.newBufferedWriter(Path.of(OPEN_LIBRARY_EDITION_ID_MAP_PATH), ENCODING, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-             BufferedWriter writer1 = Files.newBufferedWriter(Path.of(workCsvFile), ENCODING);) {
+             BufferedWriter writer1 = Files.newBufferedWriter(Path.of(workCsvFile), ENCODING);
+             BufferedWriter writer2 = Files.newBufferedWriter(Path.of(leftoverFile), ENCODING)) {
             writer1.write("title,subtitle,description,pagination,number_of_pages,physical_format,physical_dimensions,weight," +
                                   "isbn_10,isbn_13,oclc_number,lccn_number,dewey_number,lc_classifications," +
                                   "volumns,language,publisher,publish_date,publish_country,publish_place," +
@@ -125,7 +130,8 @@ public class Core {
                 try {
                     key = Integer.parseInt(line.substring(line.indexOf("/books/OL") + 9, line.indexOf("M")));
                 } catch (Exception e) {
-                    log.error(line, e);
+                    writer2.write(line);
+                    writer2.newLine();
                     continue;
                 }
                 if (!editionIdMap.containsKey(key)) {
@@ -134,7 +140,8 @@ public class Core {
                         Edition edition = JacksonUtil.readValue(line, Edition.class);
                         Integer editionWorkKey = edition.workKey();
                         if (editionWorkKey == null || !workIdMap.containsKey(edition.workKey())) {
-                            log.info("No available work for edition '{}' ({})", edition.key(), editionWorkKey);
+                            writer2.write(edition.key() + "---" + editionWorkKey + "---" + line);
+                            writer2.newLine();
                             continue;
                         }
 
@@ -176,9 +183,9 @@ public class Core {
                                         + toData(edition.lcClassification()) + toData(String.valueOf(edition.numberOfVolumes()))
                                         + toData(edition.language()) + toData(edition.publisher()) + toData(edition.publishDate())
                                         + toData(edition.publishCountry()) + toData(edition.publishPlace()) + toData(edition.byStatement())
-                                        + toData(edition.contributions()) + toData(edition.identifiers()) + toData(cover)
-                                        + toData(String.valueOf(edition.olKey())) + toData(String.valueOf(grade))
-                                        + toData(String.valueOf(workKey), true);
+                                        + toData(edition.contributions()) + toData(edition.identifiers()) 
+                                        + toData(cover) + toData(String.valueOf(edition.olKey())) 
+                                        + toData(String.valueOf(grade)) + toData(String.valueOf(workKey), true);
                                 writer1.write(value);
                                 writer1.newLine();
                                 editionId++;
@@ -221,6 +228,8 @@ public class Core {
                     }
                 }
             }
+
+            
 //            List<String> terms = List.of("title", "publish_date", "languages", "genres",
 //                                         "series", "physical_format", "number_of_pages", "pagination",
 //                                         "lccn", "ocaid", "oclc_numbers", "isbn_10", "isbn_13", "volumes",
