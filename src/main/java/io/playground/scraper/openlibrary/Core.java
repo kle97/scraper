@@ -63,9 +63,9 @@ public class Core {
 
 
     public static void main(String[] args) throws IOException {
-//        processAuthor();
+        processAuthor();
 //        processWork();
-        processEdition();
+//        processEdition();
     }
 
     public static void processEdition() throws IOException {
@@ -114,6 +114,7 @@ public class Core {
         }
 
 
+        filteredWorksMap.clear();
         if (paths.isEmpty()) {
             return;
         }
@@ -130,11 +131,11 @@ public class Core {
         String filteredEditionFile = directoryPath + "filtered-edition" + ".csv";
 
         try (BufferedReader reader = Files.newBufferedReader(latestEditionPath, ENCODING);
-//             BufferedWriter writer = Files.newBufferedWriter(Path.of(OPEN_LIBRARY_EDITION_ID_MAP_PATH), ENCODING, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-             BufferedWriter writer1 = Files.newBufferedWriter(Path.of(workCsvFile), ENCODING);
-//             BufferedWriter writer2 = Files.newBufferedWriter(Path.of(leftoverFile), ENCODING);
-             BufferedWriter writer3 = Files.newBufferedWriter(Path.of(OPEN_LIBRARY_LEFTOVER_TITLE_PATH), ENCODING);
              BufferedWriter writer4 = Files.newBufferedWriter(Path.of(filteredEditionFile), ENCODING);
+             BufferedWriter writer1 = Files.newBufferedWriter(Path.of(workCsvFile), ENCODING);
+             BufferedWriter writer3 = Files.newBufferedWriter(Path.of(OPEN_LIBRARY_LEFTOVER_TITLE_PATH), ENCODING);
+//             BufferedWriter writer = Files.newBufferedWriter(Path.of(OPEN_LIBRARY_EDITION_ID_MAP_PATH), ENCODING, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+//             BufferedWriter writer2 = Files.newBufferedWriter(Path.of(leftoverFile), ENCODING);
         ) {
             writer1.write("title,subtitle,description,pagination,number_of_pages,physical_format,physical_dimensions,weight," +
                                   "isbn_10,isbn_13,oclc_number,lccn_number,dewey_number,lc_classifications," +
@@ -168,86 +169,38 @@ public class Core {
                     }
                     continue;
                 }
-                if (!editionIdMap.containsKey(key)) {
-                    line = line.substring(line.indexOf("{"));
-                    Edition edition = JacksonUtil.readValue(line, Edition.class);
-                    Integer editionWorkKey = edition.workKey();
-                    int workKey;
-                    if (editionWorkKey == null || !workIdMap.containsKey(edition.workKey())) {
-                        if (workTitleMap.containsKey(edition.title())) {
-                            workKey = workIdMap.get(workTitleMap.get(edition.title()));
-                        } else {
+                line = line.substring(line.indexOf("{"));
+                Edition edition = JacksonUtil.readValue(line, Edition.class);
+                Integer editionWorkKey = edition.workKey();
+                int workKey;
+                if (editionWorkKey == null || !workIdMap.containsKey(edition.workKey())) {
+                    if (workTitleMap.containsKey(edition.title())) {
+                        workKey = workIdMap.get(workTitleMap.get(edition.title()));
+                    } else {
 //                            writer2.write(edition.key() + "---" + editionWorkKey + "---" + line);
 //                            writer2.newLine();
-                            if (edition.title() != null) {
-                                writer3.write(edition.title());
-                                writer3.newLine();
-                            }
-                            continue;
+                        if (edition.title() != null) {
+                            writer3.write(edition.title());
+                            writer3.newLine();
                         }
-                    } else {
-                        workKey = workIdMap.get(edition.workKey());
+                        continue;
                     }
+                } else {
+                    workKey = workIdMap.get(edition.workKey());
+                }
 
-                    if (edition.isbn10() != null && !edition.isbn10().isEmpty()
-                            || edition.isbn13() != null && !edition.isbn13().isEmpty()) {
-                        int size = 0;
-                        if (edition.isbn10() != null && !edition.isbn10().isEmpty()) {
-                            size = edition.isbn10().size();
-                        }
-                        if (edition.isbn13() != null && !edition.isbn13().isEmpty()) {
-                            size = Math.max(edition.isbn13().size(), size);
-                        }
-                        for (int i = 0; i < size; i++) {
-                            String isbn10 = edition.isbn10() != null && edition.isbn10().size() > i ? edition.isbn10().get(i) : null;
-                            String isbn13 = edition.isbn13() != null && edition.isbn13().size() > i ? edition.isbn13().get(i) : null;
-                            String cover = edition.covers() != null && !edition.covers().isEmpty()
-                                    && edition.covers().getFirst() != null && !edition.covers().getFirst().equals("-1")
-                                    ? edition.covers().getFirst() : null;
-                            int grade = 0;
-                            if (edition.description() != null) {
-                                grade += 5;
-                                if (edition.description().length() > 20) {
-                                    grade += 20;
-                                }
-                            }
-                            grade += cover != null ? 15 : 0;
-                            grade += isbn10 != null ? 20 : 0;
-                            grade += isbn13 != null ? 20 : 0;
-                            grade += edition.publisher() != null ? 10 : 0;
-                            grade += edition.publishDate() != null ? 5 : 0;
-                            grade += edition.numberOfPages() != null ? 5 : 0;
-
-                            String value = toData(edition.title()) + toData(edition.subtitle()) + toData(edition.description())
-                                    + toData(edition.pagination()) + toData(String.valueOf(edition.numberOfPages()))
-                                    + toData(edition.physicalFormat()) + toData(edition.physicalDimensions())
-                                    + toData(edition.weight()) + toData(isbn10) + toData(isbn13)
-                                    + toData(edition.oclcNumber()) + toData(edition.lccnNumber()) + toData(edition.deweyNumber())
-                                    + toData(edition.lcClassification()) + toData(String.valueOf(edition.numberOfVolumes()))
-                                    + toData(edition.language()) + toData(edition.publisher()) + toData(edition.publishDate())
-                                    + toData(edition.publishCountry()) + toData(edition.publishPlace()) + toData(edition.byStatement())
-                                    + toData(edition.contributions()) + toData(edition.identifiers())
-                                    + toData(cover) + toData(String.valueOf(edition.olKey()))
-                                    + toData(String.valueOf(grade)) + toData(String.valueOf(workKey), true);
-                            writer1.write(value);
-                            writer1.newLine();
-                            editionId++;
-//                            writer.write("\"" + edition.olKey() + "\": " + editionId + ", ");
-
-                            if (filteredWorksMap.size() < MAX_NUMBER_OF_FILTERED_WORKS && grade >= 80
-                                    && !filteredWorksMap.containsKey(String.valueOf(editionWorkKey))) {
-                                int filteredWorkId = filteredWorksMap.size() + 1;
-                                filteredWorksMap.put(String.valueOf(editionWorkKey), filteredWorkId);
-                            }
-                            if (filteredWorksMap.containsKey(String.valueOf(editionWorkKey))) {
-                                writer4.write(value.substring(0, value.lastIndexOf(",") + 1)
-                                                      + toData(String.valueOf(filteredWorksMap.get(String.valueOf(editionWorkKey))), true));
-                                writer4.newLine();
-                            }
-                        }
-                    } else {
-                        String isbn10 = null;
-                        String isbn13 = null;
+                if (edition.isbn10() != null && !edition.isbn10().isEmpty()
+                        || edition.isbn13() != null && !edition.isbn13().isEmpty()) {
+                    int size = 0;
+                    if (edition.isbn10() != null && !edition.isbn10().isEmpty()) {
+                        size = edition.isbn10().size();
+                    }
+                    if (edition.isbn13() != null && !edition.isbn13().isEmpty()) {
+                        size = Math.max(edition.isbn13().size(), size);
+                    }
+                    for (int i = 0; i < size; i++) {
+                        String isbn10 = edition.isbn10() != null && edition.isbn10().size() > i ? edition.isbn10().get(i) : null;
+                        String isbn13 = edition.isbn13() != null && edition.isbn13().size() > i ? edition.isbn13().get(i) : null;
                         String cover = edition.covers() != null && !edition.covers().isEmpty()
                                 && edition.covers().getFirst() != null && !edition.covers().getFirst().equals("-1")
                                 ? edition.covers().getFirst() : null;
@@ -259,6 +212,8 @@ public class Core {
                             }
                         }
                         grade += cover != null ? 15 : 0;
+                        grade += isbn10 != null ? 20 : 0;
+                        grade += isbn13 != null ? 20 : 0;
                         grade += edition.publisher() != null ? 10 : 0;
                         grade += edition.publishDate() != null ? 5 : 0;
                         grade += edition.numberOfPages() != null ? 5 : 0;
@@ -271,14 +226,69 @@ public class Core {
                                 + toData(edition.lcClassification()) + toData(String.valueOf(edition.numberOfVolumes()))
                                 + toData(edition.language()) + toData(edition.publisher()) + toData(edition.publishDate())
                                 + toData(edition.publishCountry()) + toData(edition.publishPlace()) + toData(edition.byStatement())
-                                + toData(edition.contributions()) + toData(edition.identifiers()) + toData(cover)
-                                + toData(String.valueOf(edition.olKey())) + toData(String.valueOf(grade))
-                                + toData(String.valueOf(workKey), true);
+                                + toData(edition.contributions()) + toData(edition.identifiers())
+                                + toData(cover) + toData(String.valueOf(edition.olKey()))
+                                + toData(String.valueOf(grade)) + toData(String.valueOf(workKey), true);
                         writer1.write(value);
                         writer1.newLine();
                         editionId++;
-//                        writer.write("\"" + edition.olKey() + "\": " + editionId + ", ");
+//                            writer.write("\"" + edition.olKey() + "\": " + editionId + ", ");
+
+                        if (filteredWorksMap.size() < MAX_NUMBER_OF_FILTERED_WORKS && grade >= 70
+                                && editionWorkKey != null && !filteredWorksMap.containsKey(String.valueOf(editionWorkKey))) {
+                            int filteredWorkId = filteredWorksMap.size() + 1;
+                            filteredWorksMap.put(String.valueOf(editionWorkKey), filteredWorkId);
+                        }
+                        if (editionWorkKey != null && filteredWorksMap.containsKey(String.valueOf(editionWorkKey))) {
+                            writer4.write(value.substring(0, value.lastIndexOf(",") + 1)
+                                                  + toData(String.valueOf(filteredWorksMap.get(String.valueOf(editionWorkKey))), true));
+                            writer4.newLine();
+                        }
                     }
+                } else {
+                    String isbn10 = null;
+                    String isbn13 = null;
+                    String cover = edition.covers() != null && !edition.covers().isEmpty()
+                            && edition.covers().getFirst() != null && !edition.covers().getFirst().equals("-1")
+                            ? edition.covers().getFirst() : null;
+                    int grade = 0;
+                    if (edition.description() != null) {
+                        grade += 5;
+                        if (edition.description().length() > 20) {
+                            grade += 20;
+                        }
+                    }
+                    grade += cover != null ? 15 : 0;
+                    grade += edition.publisher() != null ? 10 : 0;
+                    grade += edition.publishDate() != null ? 5 : 0;
+                    grade += edition.numberOfPages() != null ? 5 : 0;
+
+                    String value = toData(edition.title()) + toData(edition.subtitle()) + toData(edition.description())
+                            + toData(edition.pagination()) + toData(String.valueOf(edition.numberOfPages()))
+                            + toData(edition.physicalFormat()) + toData(edition.physicalDimensions())
+                            + toData(edition.weight()) + toData(isbn10) + toData(isbn13)
+                            + toData(edition.oclcNumber()) + toData(edition.lccnNumber()) + toData(edition.deweyNumber())
+                            + toData(edition.lcClassification()) + toData(String.valueOf(edition.numberOfVolumes()))
+                            + toData(edition.language()) + toData(edition.publisher()) + toData(edition.publishDate())
+                            + toData(edition.publishCountry()) + toData(edition.publishPlace()) + toData(edition.byStatement())
+                            + toData(edition.contributions()) + toData(edition.identifiers()) + toData(cover)
+                            + toData(String.valueOf(edition.olKey())) + toData(String.valueOf(grade))
+                            + toData(String.valueOf(workKey), true);
+                    writer1.write(value);
+                    writer1.newLine();
+                    editionId++;
+//                        writer.write("\"" + edition.olKey() + "\": " + editionId + ", ");
+
+//                    if (filteredWorksMap.size() < MAX_NUMBER_OF_FILTERED_WORKS && grade >= 50
+//                            && editionWorkKey != null && !filteredWorksMap.containsKey(String.valueOf(editionWorkKey))) {
+//                        int filteredWorkId = filteredWorksMap.size() + 1;
+//                        filteredWorksMap.put(String.valueOf(editionWorkKey), filteredWorkId);
+//                    }
+//                    if (editionWorkKey != null && filteredWorksMap.containsKey(String.valueOf(editionWorkKey))) {
+//                        writer4.write(value.substring(0, value.lastIndexOf(",") + 1)
+//                                              + toData(String.valueOf(filteredWorksMap.get(String.valueOf(editionWorkKey))), true));
+//                        writer4.newLine();
+//                    }
                 }
             }
 
@@ -442,7 +452,7 @@ public class Core {
                     }
                     workId++;
                     int olKey = work.olKey();
-                    writer.write("\"" + olKey + "\": " + workId + ", ");
+//                    writer.write("\"" + olKey + "\": " + workId + ", ");
 
                     if (leftoverTitle.contains(work.title())) {
                         writer4.write(olKey + " ///// " + work.title());
@@ -764,8 +774,8 @@ public class Core {
                           String physicalDimensions,
                           String weight,
 
-                          List<String> isbn10,
-                          List<String> isbn13,
+                          @JsonProperty("isbn_10") List<String> isbn10,
+                          @JsonProperty("isbn_13") List<String> isbn13,
                           List<String> oclcNumbers,
                           List<String> lccn,
                           List<String> deweyDecimalClass,
