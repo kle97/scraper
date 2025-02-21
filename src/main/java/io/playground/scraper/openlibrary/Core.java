@@ -52,9 +52,14 @@ public class Core {
 
 
     public static void main(String[] args) throws IOException {
+        RedirectProcessor redirectProcessor = new RedirectProcessor();
+        AuthorProcessor authorProcessor = new AuthorProcessor();
+        redirectProcessor.processRedirect();
+        authorProcessor.processAuthor();
+
 //        processAuthor();
 //        processWork();
-        processEdition();
+//        processEdition();
     }
 
     public static void processEdition() throws IOException {
