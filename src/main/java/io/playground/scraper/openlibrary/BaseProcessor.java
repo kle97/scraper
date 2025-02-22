@@ -29,10 +29,15 @@ public abstract class BaseProcessor {
     public static final String OPEN_LIBRARY_WORK_PATH_PATTERN = "ol_dump_works*.txt";
     public static final String OPEN_LIBRARY_EDITION_PATH_PATTERN = "ol_dump_editions*.txt";
     public static final String OPEN_LIBRARY_REDIRECT_PATH_PATTERN = "ol_dump_redirects*.txt";
+    public static final String OPEN_LIBRARY_RATING_PATH_PATTERN = "ol_dump_ratings*.txt";
 
     public static final String OPEN_LIBRARY_AUTHOR_ID_MAP_PATH = OPEN_LIBRARY_PROCESSED_PATH + "author-id-map.json5";
     public static final String OPEN_LIBRARY_WORK_ID_MAP_PATH = OPEN_LIBRARY_PROCESSED_PATH + "work-id-map.json5";
     public static final String OPEN_LIBRARY_EDITION_ID_MAP_PATH = OPEN_LIBRARY_PROCESSED_PATH + "edition-id-map.json5";
+    public static final String OPEN_LIBRARY_AUTHOR_REDIRECT_MAP_PATH = OPEN_LIBRARY_PROCESSED_PATH + "author-redirect-map.json5";
+    public static final String OPEN_LIBRARY_WORK_REDIRECT_MAP_PATH = OPEN_LIBRARY_PROCESSED_PATH + "work-redirect-map.json5";
+    public static final String OPEN_LIBRARY_EDITION_REDIRECT_MAP_PATH = OPEN_LIBRARY_PROCESSED_PATH + "edition-redirect-map.json5";
+    public static final String OPEN_LIBRARY_WORK_RATING_MAP_PATH = OPEN_LIBRARY_PROCESSED_PATH + "work-rating-map.json5";
     public static final String OPEN_LIBRARY_WORK_TITLE_PATH = OPEN_LIBRARY_PROCESSED_PATH + "work-title.txt";
     public static final String OPEN_LIBRARY_LEFTOVER_TITLE_PATH = OPEN_LIBRARY_PROCESSED_PATH + "leftover-title.txt";
 

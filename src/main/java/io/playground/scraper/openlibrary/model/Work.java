@@ -46,4 +46,8 @@ public record Work(String title,
         return Integer.parseInt(key.substring(key.indexOf("OL") + 2, key.indexOf("W")));
     }
 
+    public String olKeyString() {
+        return key.substring(key.indexOf("OL") + 2, key.indexOf("W"));
+    }
+
 }

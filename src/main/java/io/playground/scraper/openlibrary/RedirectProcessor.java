@@ -22,16 +22,12 @@ public class RedirectProcessor extends BaseProcessor {
             return;
         }
 
-        String directoryPath = OPEN_LIBRARY_PROCESSED_PATH;
-        Files.createDirectories(Path.of(directoryPath));
+        Files.createDirectories(Path.of(OPEN_LIBRARY_PROCESSED_PATH));
 
-        String authorRedirectMapFile = directoryPath + "redirect-author" + ".json5";
-        String workRedirectMapFile = directoryPath + "redirect-work" + ".json5";
-        String editionRedirectMapFile = directoryPath + "redirect-edition" + ".json5";
         try(BufferedReader redirectReader = Files.newBufferedReader(latestRedirectPath, ENCODING);
-            BufferedWriter redirectAuthorMapWriter = Files.newBufferedWriter(Path.of(authorRedirectMapFile), ENCODING);
-            BufferedWriter redirectWorkMapWriter = Files.newBufferedWriter(Path.of(workRedirectMapFile), ENCODING);
-            BufferedWriter redirectEditionMapWriter = Files.newBufferedWriter(Path.of(editionRedirectMapFile), ENCODING);
+            BufferedWriter redirectAuthorMapWriter = Files.newBufferedWriter(Path.of(OPEN_LIBRARY_AUTHOR_REDIRECT_MAP_PATH), ENCODING);
+            BufferedWriter redirectWorkMapWriter = Files.newBufferedWriter(Path.of(OPEN_LIBRARY_WORK_REDIRECT_MAP_PATH), ENCODING);
+            BufferedWriter redirectEditionMapWriter = Files.newBufferedWriter(Path.of(OPEN_LIBRARY_EDITION_REDIRECT_MAP_PATH), ENCODING);
         ) {
             String line;
             redirectAuthorMapWriter.write("{");
