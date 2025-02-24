@@ -118,11 +118,27 @@ public record Edition(String title,
         return null;
     }
 
+    public String lcClassification(int index) {
+        try {
+            return lcClassifications.get(index);
+        } catch (Exception ignored) {
+        }
+        return lcClassification();
+    }
+
     public String deweyNumber() {
         if (deweyDecimalClass != null && !deweyDecimalClass.isEmpty()) {
             return deweyDecimalClass.getFirst();
         }
         return null;
+    }
+
+    public String deweyNumber(int index) {
+        try {
+            return deweyDecimalClass.get(index);
+        } catch (Exception ignored) {
+        }
+        return deweyNumber();
     }
 
     public String lccnNumber() {
@@ -132,11 +148,27 @@ public record Edition(String title,
         return null;
     }
 
+    public String lccnNumber(int index) {
+        try {
+            return lccn.get(index);
+        } catch (Exception ignored) {
+        }
+        return lccnNumber();
+    }
+
     public String oclcNumber() {
         if (oclcNumbers != null && !oclcNumbers.isEmpty()) {
             return oclcNumbers.getFirst();
         }
         return null;
+    }
+
+    public String oclcNumber(int index) {
+        try {
+            return oclcNumbers.get(index);
+        } catch (Exception ignored) {
+        }
+        return oclcNumber();
     }
 
     public String contributions() {
@@ -148,6 +180,10 @@ public record Edition(String title,
 
     public int olKey() {
         return Integer.parseInt(key.substring(key.indexOf("OL") + 2, key.indexOf("M")));
+    }
+
+    public String olKeyString() {
+        return key;
     }
 
     public Integer workKey() {

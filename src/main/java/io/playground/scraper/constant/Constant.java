@@ -5,6 +5,7 @@ import java.nio.file.FileSystems;
 public class Constant {
     
     public static final String SEPARATOR = FileSystems.getDefault().getSeparator();
+    public static final String RESOURCES_PATH = "src/main/resources/" + SEPARATOR;
     public static final String EXTERNAL_RESOURCES_PATH = "resources" + SEPARATOR;
     public static final String SCREENSHOT_FOLDER_PATH = EXTERNAL_RESOURCES_PATH + "screenshots" + SEPARATOR;
     public static final String REPORT_FOLDER_PATH = EXTERNAL_RESOURCES_PATH + "reports" + SEPARATOR;

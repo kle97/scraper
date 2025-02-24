@@ -1,6 +1,5 @@
 package io.playground.scraper.openlibrary;
 
-import io.playground.scraper.constant.Constant;
 import io.playground.scraper.openlibrary.model.Redirect;
 import io.playground.scraper.util.JacksonUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -50,6 +49,6 @@ public class RedirectProcessor extends BaseProcessor {
         }
 
         long stopTime = System.currentTimeMillis();
-        log.info("Processing redirects elapsed time: {}", (stopTime - startTime));
+        log.info("Processing redirects elapsed time: {}", msToProperTime(stopTime - startTime));
     }
 }

@@ -11,14 +11,14 @@ public record Redirect(String location, String key) {
     }
 
     public boolean isAuthor() {
-        return location != null && location.trim().endsWith("A");
+        return key != null && key.trim().endsWith("A");
     }
 
     public boolean isWork() {
-        return location != null && location.trim().endsWith("W");
+        return key != null && key.trim().endsWith("W");
     }
 
     public boolean isEdition() {
-        return location != null && location.trim().endsWith("M");
+        return key != null && key.trim().endsWith("M");
     }
 }

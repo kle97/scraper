@@ -12,9 +12,9 @@ public record Work(String title,
                    String key,
                    @JsonProperty("authors") JsonNode authorNodes,
                    List<String> subjects,
-//                       List<String> subjectPlaces,
-//                       List<String> subjectPeople,
-//                       List<String> subjectTimes,
+                   List<String> subjectPlaces,
+                   List<String> subjectPeople,
+                   List<String> subjectTimes,
                    List<String> covers) {
     public List<String> authors() {
         if (authorNodes != null) {

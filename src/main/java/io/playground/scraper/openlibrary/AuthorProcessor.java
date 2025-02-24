@@ -11,7 +11,6 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Map;
 
 @Slf4j
 public class AuthorProcessor extends BaseProcessor {
@@ -24,9 +23,7 @@ public class AuthorProcessor extends BaseProcessor {
             return;
         }
         clearOldProcessedFiles("author-*");
-
-        Map<String, Integer> filteredAuthorsMap = getMapFromJsonFile(OPEN_LIBRARY_FILTERED_AUTHOR_PATH);
-
+        
         String directoryPath = OPEN_LIBRARY_PROCESSED_PATH + "author-" + fileTimestamp + Constant.SEPARATOR;
         Files.createDirectories(Path.of(directoryPath));
 
@@ -50,19 +47,21 @@ public class AuthorProcessor extends BaseProcessor {
              BufferedWriter authorIdMapWriter = Files.newBufferedWriter(Path.of(OPEN_LIBRARY_AUTHOR_ID_MAP_PATH), ENCODING);
         ) {
             String line;
-            String title = "name,birth_date,death_date,date,bio,photo,ol_key,last_created_by,last_created_at,last_modified_by,last_modified_at";
-            authorWriter.write(title);
+            String authorTitle = "name,birth_date,death_date,date,bio,photo,ol_key" + auditTitle();
+            String authorAltNameTitle = "name,author_id" + auditTitle();
+            String authorLinkTitle = "title,url,author_id" + auditTitle();
+            authorWriter.write(authorTitle);
             authorWriter.newLine();
-            authorAltNameWriter.write("name,author_id");
+            authorAltNameWriter.write(authorAltNameTitle);
             authorAltNameWriter.newLine();
-            authorLinkWriter.write("title,url,author_id");
+            authorLinkWriter.write(authorLinkTitle);
             authorLinkWriter.newLine();
 
-            filteredAuthorWriter.write(title);
+            filteredAuthorWriter.write(authorTitle);
             filteredAuthorWriter.newLine();
-            filteredAuthorAltNameWriter.write("name,author_id");
+            filteredAuthorAltNameWriter.write(authorAltNameTitle);
             filteredAuthorAltNameWriter.newLine();
-            filteredAuthorLinkWriter.write("title,url,author_id");
+            filteredAuthorLinkWriter.write(authorLinkTitle);
             filteredAuthorLinkWriter.newLine();
             authorIdMapWriter.write("{");
             while ((line = authorReader.readLine()) != null) {
@@ -70,57 +69,39 @@ public class AuthorProcessor extends BaseProcessor {
                     authorWriter.close();
                     authorCsvFile = directoryPath + "author-" + currentAuthorId + ".csv";
                     authorWriter = Files.newBufferedWriter(Path.of(authorCsvFile), ENCODING);
-                    authorWriter.write(title);
+                    authorWriter.write(authorTitle);
                     authorWriter.newLine();
                     startAuthorId = currentAuthorId;
                 }
-
-                String key = line.substring(line.indexOf("/authors/OL") + 11, line.indexOf("A"));
+                
                 line = line.substring(line.indexOf("{"));
                 Author author = JacksonUtil.readValue(line, Author.class);
-                String value = toData(author.name()) + toData(author.birthDate()) + toData(author.deathDate())
-                        + toData(author.date()) + toData(author.bio())
-                        + toData(author.photo()) + toData("OL" + author.olKey() + "A")
-                        + toData(1) + toData(TIMESTAMP) + toData(1) + toData(TIMESTAMP, true);
+                String value = toDataWithAudit(author.name(), author.birthDate(), author.deathDate(), author.date(), 
+                                               author.bio(), author.photo(), "OL" + author.olKey() + "A");
                 authorWriter.write(value);
                 authorWriter.newLine();
-
-                if (filteredAuthorsMap.containsKey(key)) {
-                    filteredAuthorWriter.write(value);
-                    filteredAuthorWriter.newLine();
-                }
-
                 currentAuthorId++;
                 authorIdMapWriter.write("\"" + author.olKey() + "\": " + currentAuthorId + ", ");
 
-                if (author.alternateNames() != null && !author.alternateNames().isEmpty()) {
+                if (author.alternateNames() != null) {
                     for (String alternateName : author.alternateNames()) {
-                        authorAltNameWriter.write(toData(alternateName) + currentAuthorId);
+                        authorAltNameWriter.write(toDataWithAudit(alternateName, currentAuthorId));
                         authorAltNameWriter.newLine();
-
-                        if (filteredAuthorsMap.containsKey(key)) {
-                            filteredAuthorAltNameWriter.write(toData(alternateName) + filteredAuthorsMap.get(key));
-                            filteredAuthorAltNameWriter.newLine();
-                        }
                     }
                 }
 
-                if (author.links() != null && !author.links().isEmpty()) {
+                if (author.links() != null) {
                     for (Link link : author.links()) {
-                        authorLinkWriter.write(toData(link.title()) + toData(link.url()) + currentAuthorId);
+                        authorLinkWriter.write(toDataWithAudit(link.title(), link.url(), currentAuthorId));
                         authorLinkWriter.newLine();
-
-                        if (filteredAuthorsMap.containsKey(key)) {
-                            filteredAuthorLinkWriter.write(toData(link.title()) + toData(link.url()) + filteredAuthorsMap.get(key));
-                            filteredAuthorLinkWriter.newLine();
-                        }
                     }
                 }
             }
+            authorIdMapWriter.write("}");
             authorWriter.close();
         }
 
         long stopTime = System.currentTimeMillis();
-        log.info("Processing authors elapsed time: {}", (stopTime - startTime));
+        log.info("Processing authors elapsed time: {}", msToProperTime(stopTime - startTime));
     }
 }

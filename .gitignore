@@ -5,6 +5,7 @@ target/
 chromedriver/
 screenshots/
 resources/
+!src/main/resources
 
 ### IntelliJ IDEA ###
 .idea
