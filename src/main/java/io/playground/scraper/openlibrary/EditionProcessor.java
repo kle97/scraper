@@ -56,7 +56,7 @@ public class EditionProcessor extends BaseProcessor {
                     "language,publish_date,publish_country,publish_place," +
 //                    "by_statement,contributions,identifier," +
                     "cover,ol_key,grade,publisher_id,work_id" + auditTitle();
-            String publisherTitle = "name" + auditTitle();
+            String publisherTitle = "publisher_name" + auditTitle();
             
             editionWriter.write(editionTitle);
             editionWriter.newLine();

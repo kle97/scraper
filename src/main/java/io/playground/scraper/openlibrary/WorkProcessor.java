@@ -69,7 +69,7 @@ public class WorkProcessor extends BaseProcessor {
              BufferedWriter filteredRatingWriter = Files.newBufferedWriter(Path.of(filteredRatingCsvFile), ENCODING);
         ) {
             String workTitle = "title,ol_key" + auditTitle();
-            String subjectTitle = "name" + auditTitle();
+            String subjectTitle = "subject_name" + auditTitle();
             String workSubjectTitle = "work_id,subject_id" + auditTitle();
             String workAuthorTitle = "author_id,work_id" + auditTitle();
             String ratingTitle = "score,work_id" + auditTitle();
@@ -235,9 +235,9 @@ public class WorkProcessor extends BaseProcessor {
              BufferedWriter filteredWorkAuthorWriter = Files.newBufferedWriter(Path.of(filteredWorkAuthorCsvFile), ENCODING);
         ) {
             String line;
-            filteredAuthorWriter.write("name,birth_date,death_date,date,biography,photo,ol_key" + auditTitle());
+            filteredAuthorWriter.write("author_name,birth_date,death_date,date,biography,photo,ol_key" + auditTitle());
             filteredAuthorWriter.newLine();
-            filteredAuthorAltNameWriter.write("name,author_id" + auditTitle());
+            filteredAuthorAltNameWriter.write("alternate_name,author_id" + auditTitle());
             filteredAuthorAltNameWriter.newLine();
             filteredAuthorLinkWriter.write("title,url,author_id" + auditTitle());
             filteredAuthorLinkWriter.newLine();
