@@ -51,11 +51,11 @@ public class EditionProcessor extends BaseProcessor {
              BufferedWriter filteredPublisherWriter = Files.newBufferedWriter(Path.of(filteredPublisherFile), ENCODING);
              BufferedWriter malformedEditionWriter = Files.newBufferedWriter(Path.of(OPEN_LIBRARY_LEFTOVER_TITLE_PATH), ENCODING);
         ) {
-            String editionTitle = "title,subtitle,description,pagination,number_of_pages,physical_format," +
+            String editionTitle = "title,subtitle,description,pagination,number_of_pages,volumns,physical_format," +
                     "physical_dimensions,weight,isbn_10,isbn_13,oclc_number,lccn_number,dewey_number,lc_classifications," +
-                    "volumns,language,publisher_id,publish_date,publish_country,publish_place," +
+                    "language,publish_date,publish_country,publish_place," +
 //                    "by_statement,contributions,identifier," +
-                    "cover,ol_key,grade,work_id" + auditTitle();
+                    "cover,ol_key,grade,publisher_id,work_id" + auditTitle();
             String publisherTitle = "name" + auditTitle();
             
             editionWriter.write(editionTitle);
@@ -99,6 +99,10 @@ public class EditionProcessor extends BaseProcessor {
                     editionWorkKey = String.valueOf(workIdMap.get(editionWorkKey));
                 } else if (workRedirectMap.containsKey(editionWorkKey)) {
                     editionWorkKey = String.valueOf(workRedirectMap.get(editionWorkKey));
+                } else {
+                    malformedEditionWriter.write(line);
+                    malformedEditionWriter.newLine();
+                    continue;
                 }
 
                 boolean isInEnglish = false;
@@ -158,13 +162,13 @@ public class EditionProcessor extends BaseProcessor {
                     }
 
                     String value = toDataWithAudit(edition.title(), edition.subtitle(), edition.description(),
-                                                   edition.pagination(), edition.numberOfPages(), edition.physicalFormat(),
-                                                   edition.physicalDimensions(), edition.weight(), isbn10, isbn13,
-                                                   edition.oclcNumber(i), edition.lccnNumber(i), edition.deweyNumber(i),
-                                                   edition.lcClassification(i), edition.numberOfVolumes(), edition.language(),
-                                                   publisherId, edition.publishDate(), edition.publishCountry(), edition.publishPlace(), 
+                                                   edition.pagination(), edition.numberOfPages(), edition.numberOfVolumes(),
+                                                   edition.physicalFormat(), edition.physicalDimensions(), edition.weight(),
+                                                   isbn10, isbn13, edition.oclcNumber(i), edition.lccnNumber(i),
+                                                   edition.deweyNumber(i), edition.lcClassification(i), edition.language(),
+                                                   edition.publishDate(), edition.publishCountry(), edition.publishPlace(),
 //                                                       edition.byStatement(), edition.contributions(), edition.identifiers(),
-                                                   cover, edition.olKeyString(), grade, editionWorkKey);
+                                                   cover, edition.key(), grade, publisherId, editionWorkKey);
                     editionWriter.write(value);
                     editionWriter.newLine();
                     currentEditionId++;

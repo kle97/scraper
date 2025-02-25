@@ -43,13 +43,13 @@ public class WorkProcessor extends BaseProcessor {
         String workCsvFile = directoryPath + "work" + ".csv";
         String subjectCsvFile = directoryPath + "subject" + ".csv";
         String workSubjectCsvFile = directoryPath + "work-subject" + ".csv";
-        String workAuthorsCsvFile = directoryPath + "work-author" + ".csv";
+        String workAuthorsCsvFile = directoryPath + "author_work" + ".csv";
         String ratingCsvFile = directoryPath + "rating" + ".csv";
 
         String filteredWorkCsvFile = directoryPath + "filtered-work" + ".csv";
         String filteredSubjectCsvFile = directoryPath + "filtered-subject" + ".csv";
         String filteredWorkSubjectCsvFile = directoryPath + "filtered-work-subject" + ".csv";
-        String filteredWorkAuthorCsvFile = directoryPath + "filtered-work-author" + ".csv";
+        String filteredWorkAuthorCsvFile = directoryPath + "filtered-author_work" + ".csv";
         String filteredRatingCsvFile = directoryPath + "filtered-rating" + ".csv";
 
         int currentWorkId = 0;
@@ -68,9 +68,9 @@ public class WorkProcessor extends BaseProcessor {
              BufferedWriter filteredWorkSubjectWriter = Files.newBufferedWriter(Path.of(filteredWorkSubjectCsvFile), ENCODING);
              BufferedWriter filteredRatingWriter = Files.newBufferedWriter(Path.of(filteredRatingCsvFile), ENCODING);
         ) {
-            String workTitle = "title,cover,ol_key" + auditTitle();
+            String workTitle = "title,ol_key" + auditTitle();
             String subjectTitle = "name" + auditTitle();
-            String workSubjectTitle = "subject_id,work_id" + auditTitle();
+            String workSubjectTitle = "work_id,subject_id" + auditTitle();
             String workAuthorTitle = "author_id,work_id" + auditTitle();
             String ratingTitle = "score,work_id" + auditTitle();
             workWriter.write(workTitle);
@@ -104,16 +104,17 @@ public class WorkProcessor extends BaseProcessor {
                     workWriter.newLine();
                     startWorkId = currentWorkId;
                 }
-                boolean isInEnglish = false;
+
                 boolean isFiltered = false;
                 line = line.substring(line.indexOf("{"));
                 Work work = JacksonUtil.readValue(line, Work.class);
-                String value = toDataWithAudit(work.title(), work.cover(), "OL" + work.olKey() + "W");
+                String value = toDataWithAudit(work.title(), work.key());
                 workWriter.write(value);
                 workWriter.newLine();
                 currentWorkId++;
                 workIdMapWriter.write("\"" + work.olKey() + "\": " + currentWorkId + ", ");
-                
+
+                boolean isInEnglish = false;
                 if (work.title() != null) {
                     String[] tokens = work.title().split(" ");
                     int englishWordCount = 0;
@@ -136,7 +137,7 @@ public class WorkProcessor extends BaseProcessor {
                     }
                     int total = scores.stream().reduce(0, Integer::sum);
                     double averageScore = (double) total / scores.size();
-                    if (currentFilteredWorkId < MAX_NUMBER_OF_FILTERED_WORKS && isInEnglish && scores.size() > 50 && averageScore >= 4) {
+                    if (currentFilteredWorkId < MAX_NUMBER_OF_FILTERED_WORKS && isInEnglish && scores.size() > 40 && averageScore >= 4) {
                         isFiltered = true;
                         currentFilteredWorkId++;
                         filteredWorkWriter.write(value);
@@ -234,7 +235,7 @@ public class WorkProcessor extends BaseProcessor {
              BufferedWriter filteredWorkAuthorWriter = Files.newBufferedWriter(Path.of(filteredWorkAuthorCsvFile), ENCODING);
         ) {
             String line;
-            filteredAuthorWriter.write("name,birth_date,death_date,date,bio,photo,ol_key" + auditTitle());
+            filteredAuthorWriter.write("name,birth_date,death_date,date,biography,photo,ol_key" + auditTitle());
             filteredAuthorWriter.newLine();
             filteredAuthorAltNameWriter.write("name,author_id" + auditTitle());
             filteredAuthorAltNameWriter.newLine();
@@ -248,7 +249,7 @@ public class WorkProcessor extends BaseProcessor {
                     line = line.substring(line.indexOf("{"));
                     Author author = JacksonUtil.readValue(line, Author.class);
                     String value = toDataWithAudit(author.name(), author.birthDate(), author.deathDate(), author.date(),
-                                                   author.bio(), author.photo(), "OL" + author.olKey() + "A");
+                                                   author.bio(), author.photo(), author.key());
 
                     currentAuthorId++;
                     filteredAuthorWriter.write(value);

@@ -30,10 +30,6 @@ public class AuthorProcessor extends BaseProcessor {
         String authorCsvFile = directoryPath + "author" + ".csv";
         String authorAlternateNameCsvFile = directoryPath + "author-alternate-name" + ".csv";
         String authorLinkCsvFile = directoryPath + "author-link" + ".csv";
-        String filteredAuthorCsvFile = directoryPath + "filtered-author" + ".csv";
-        String filteredAuthorAlternateNameCsvFile = directoryPath + "filtered-author-alternate-name" + ".csv";
-        String filteredAuthorLinkCsvFile = directoryPath + "filtered-author-link" + ".csv";
-
 
         int currentAuthorId = 0;
         int startAuthorId = currentAuthorId;
@@ -41,13 +37,10 @@ public class AuthorProcessor extends BaseProcessor {
         try (BufferedReader authorReader = Files.newBufferedReader(latestAuthorPath, ENCODING);
              BufferedWriter authorAltNameWriter = Files.newBufferedWriter(Path.of(authorAlternateNameCsvFile), ENCODING);
              BufferedWriter authorLinkWriter = Files.newBufferedWriter(Path.of(authorLinkCsvFile), ENCODING);
-             BufferedWriter filteredAuthorWriter = Files.newBufferedWriter(Path.of(filteredAuthorCsvFile), ENCODING);
-             BufferedWriter filteredAuthorAltNameWriter = Files.newBufferedWriter(Path.of(filteredAuthorAlternateNameCsvFile), ENCODING);
-             BufferedWriter filteredAuthorLinkWriter = Files.newBufferedWriter(Path.of(filteredAuthorLinkCsvFile), ENCODING);
              BufferedWriter authorIdMapWriter = Files.newBufferedWriter(Path.of(OPEN_LIBRARY_AUTHOR_ID_MAP_PATH), ENCODING);
         ) {
             String line;
-            String authorTitle = "name,birth_date,death_date,date,bio,photo,ol_key" + auditTitle();
+            String authorTitle = "name,birth_date,death_date,date,biography,photo,ol_key" + auditTitle();
             String authorAltNameTitle = "name,author_id" + auditTitle();
             String authorLinkTitle = "title,url,author_id" + auditTitle();
             authorWriter.write(authorTitle);
@@ -57,12 +50,6 @@ public class AuthorProcessor extends BaseProcessor {
             authorLinkWriter.write(authorLinkTitle);
             authorLinkWriter.newLine();
 
-            filteredAuthorWriter.write(authorTitle);
-            filteredAuthorWriter.newLine();
-            filteredAuthorAltNameWriter.write(authorAltNameTitle);
-            filteredAuthorAltNameWriter.newLine();
-            filteredAuthorLinkWriter.write(authorLinkTitle);
-            filteredAuthorLinkWriter.newLine();
             authorIdMapWriter.write("{");
             while ((line = authorReader.readLine()) != null) {
                 if (currentAuthorId - startAuthorId >= MAX_ENTRY_PER_FILE) {
@@ -77,7 +64,7 @@ public class AuthorProcessor extends BaseProcessor {
                 line = line.substring(line.indexOf("{"));
                 Author author = JacksonUtil.readValue(line, Author.class);
                 String value = toDataWithAudit(author.name(), author.birthDate(), author.deathDate(), author.date(), 
-                                               author.bio(), author.photo(), "OL" + author.olKey() + "A");
+                                               author.bio(), author.photo(), author.key());
                 authorWriter.write(value);
                 authorWriter.newLine();
                 currentAuthorId++;

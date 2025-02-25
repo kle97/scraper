@@ -6,9 +6,11 @@ import com.neovisionaries.i18n.LocaleCode;
 import io.playground.scraper.util.JacksonUtil;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 public record Edition(String title,
@@ -178,16 +180,11 @@ public record Edition(String title,
         return null;
     }
 
-    public int olKey() {
-        return Integer.parseInt(key.substring(key.indexOf("OL") + 2, key.indexOf("M")));
-    }
-
-    public String olKeyString() {
-        return key;
-    }
-
     public Integer workKey() {
         if (works != null && !works.isEmpty()) {
+//            if (works.size() > 1) {
+//                log.info(works.stream().map(NodeKey::key).collect(Collectors.joining(", ")));
+//            }
             String work = works.getFirst().key();
             return Integer.parseInt(work.substring(work.indexOf("OL") + 2, work.indexOf("W")));
         }
