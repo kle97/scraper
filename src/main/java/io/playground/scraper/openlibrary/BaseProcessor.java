@@ -173,11 +173,11 @@ public abstract class BaseProcessor {
     }
 
     protected String auditTitle() {
-        return ",last_created_by,last_created_at,last_modified_by,last_modified_at";
+        return ",last_created_by,last_created_at,last_modified_by,last_modified_at,revision";
     }
 
     protected String auditData() {
-        return toLastData("a2bec9ef-28a6-41cb-937b-adaf51dd5ca7", TIMESTAMP, "a2bec9ef-28a6-41cb-937b-adaf51dd5ca7", TIMESTAMP);
+        return toLastData("a2bec9ef-28a6-41cb-937b-adaf51dd5ca7", TIMESTAMP, "a2bec9ef-28a6-41cb-937b-adaf51dd5ca7", TIMESTAMP, 1);
     }
     
     protected Set<String> getEnglishWords() throws IOException {
