@@ -31,6 +31,8 @@ public class EditionProcessor extends BaseProcessor {
         Map<String, Integer> workRedirectMap = getMapFromJsonFile(OPEN_LIBRARY_AUTHOR_REDIRECT_MAP_PATH);
         Map<String, Integer> filteredWorkIdMap = getMapFromJsonFile(OPEN_LIBRARY_FILTERED_WORK_ID_MAP_PATH);
         Map<String, Integer> publisherMap = new HashMap<>();
+        Map<String, Integer> filteredPublisherMap = new HashMap<>();
+
         Set<String> englishWordsMap = getEnglishWords();
         
         String directoryPath = OPEN_LIBRARY_PROCESSED_PATH + "edition-" + fileTimestamp + Constant.SEPARATOR;
@@ -174,6 +176,27 @@ public class EditionProcessor extends BaseProcessor {
                     currentEditionId++;
 
                     if (filteredWorkIdMap.containsKey(editionWorkKey)) {
+                        String filteredPublisherId = null;
+                        if (edition.publisher() != null) {
+                            if (filteredPublisherMap.containsKey(edition.publisher())) {
+                                filteredPublisherId = String.valueOf(filteredPublisherMap.get(edition.publisher()));
+                            } else {
+                                int index = filteredPublisherMap.size() + 1;
+                                filteredPublisherMap.put(edition.publisher(), index);
+                                filteredPublisherId = String.valueOf(index);
+                                filteredPublisherWriter.write(toDataWithAudit(edition.publisher()));
+                                filteredPublisherWriter.newLine();
+                            }
+                        }
+
+                        value = toDataWithAudit(edition.title(), edition.subtitle(), edition.description(),
+                                                edition.pagination(), edition.numberOfPages(), edition.numberOfVolumes(),
+                                                edition.physicalFormat(), edition.physicalDimensions(), edition.weight(),
+                                                isbn10, isbn13, edition.oclcNumber(i), edition.lccnNumber(i),
+                                                edition.deweyNumber(i), edition.lcClassification(i), edition.language(),
+                                                edition.publishDate(), edition.publishCountry(), edition.publishPlace(),
+//                                                       edition.byStatement(), edition.contributions(), edition.identifiers(),
+                                                cover, edition.key(), grade, filteredPublisherId, filteredWorkIdMap.get(editionWorkKey));
                         filteredEditionWriter.write(value);
                         filteredEditionWriter.newLine();
                     }

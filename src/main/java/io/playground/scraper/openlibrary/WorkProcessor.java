@@ -43,13 +43,13 @@ public class WorkProcessor extends BaseProcessor {
         String workCsvFile = directoryPath + "work" + ".csv";
         String subjectCsvFile = directoryPath + "subject" + ".csv";
         String workSubjectCsvFile = directoryPath + "work-subject" + ".csv";
-        String workAuthorsCsvFile = directoryPath + "author_work" + ".csv";
+        String workAuthorsCsvFile = directoryPath + "author-work" + ".csv";
         String ratingCsvFile = directoryPath + "rating" + ".csv";
 
         String filteredWorkCsvFile = directoryPath + "filtered-work" + ".csv";
         String filteredSubjectCsvFile = directoryPath + "filtered-subject" + ".csv";
         String filteredWorkSubjectCsvFile = directoryPath + "filtered-work-subject" + ".csv";
-        String filteredWorkAuthorCsvFile = directoryPath + "filtered-author_work" + ".csv";
+        String filteredWorkAuthorCsvFile = directoryPath + "filtered-author-work" + ".csv";
         String filteredRatingCsvFile = directoryPath + "filtered-rating" + ".csv";
 
         int currentWorkId = 0;
@@ -143,7 +143,7 @@ public class WorkProcessor extends BaseProcessor {
                         filteredWorkWriter.write(value);
                         filteredWorkWriter.newLine();
                         for (int score : scores) {
-                            filteredRatingWriter.write(toDataWithAudit(score, currentWorkId));
+                            filteredRatingWriter.write(toDataWithAudit(score, currentFilteredWorkId));
                             filteredRatingWriter.newLine();
                         }
                         filteredWorkIdMapWriter.write("\"" + work.olKey() + "\": " + currentFilteredWorkId + ", ");
@@ -172,20 +172,20 @@ public class WorkProcessor extends BaseProcessor {
                         subjectMap.put(subject, subjectId);
                         subjectWriter.write(toDataWithAudit(subject));
                         subjectWriter.newLine();
-                        workSubjectWriter.write(toDataWithAudit(subjectId, currentWorkId));
+                        workSubjectWriter.write(toDataWithAudit(currentWorkId, subjectId));
                         workSubjectWriter.newLine();
                     }
 
                     if (isFiltered) {
                         if (filteredSubjectMap.containsKey(subject)) {
-                            filteredWorkSubjectWriter.write(toDataWithAudit(filteredSubjectMap.get(subject), currentFilteredWorkId));
+                            filteredWorkSubjectWriter.write(toDataWithAudit(currentFilteredWorkId, filteredSubjectMap.get(subject)));
                             filteredWorkSubjectWriter.newLine();
                         } else {
                             int subjectId = filteredSubjectMap.size() + 1;
                             filteredSubjectMap.put(subject, subjectId);
-                            filteredSubjectWriter.write(subject);
+                            filteredSubjectWriter.write(toDataWithAudit(subject));
                             filteredSubjectWriter.newLine();
-                            filteredWorkSubjectWriter.write(toDataWithAudit(subjectId, currentFilteredWorkId));
+                            filteredWorkSubjectWriter.write(toDataWithAudit(currentFilteredWorkId, subjectId));
                             filteredWorkSubjectWriter.newLine();
                         }
                     }
@@ -202,11 +202,11 @@ public class WorkProcessor extends BaseProcessor {
                         
                         if (isFiltered) {
                             if (filteredAuthorWorksMap.containsKey(authorKey)) {
-                                filteredAuthorWorksMap.get(authorKey).add(currentWorkId);
+                                filteredAuthorWorksMap.get(authorKey).add(currentFilteredWorkId);
                             } else {
-                                List<Integer> workIds = new ArrayList<>();
-                                workIds.add(currentWorkId);
-                                filteredAuthorWorksMap.put(authorKey, workIds);
+                                List<Integer> filteredWorkIds = new ArrayList<>();
+                                filteredWorkIds.add(currentFilteredWorkId);
+                                filteredAuthorWorksMap.put(authorKey, filteredWorkIds);
                             }
                         }
                     }
@@ -235,7 +235,7 @@ public class WorkProcessor extends BaseProcessor {
              BufferedWriter filteredWorkAuthorWriter = Files.newBufferedWriter(Path.of(filteredWorkAuthorCsvFile), ENCODING);
         ) {
             String line;
-            filteredAuthorWriter.write("author_name,birth_date,death_date,date,biography,photo,ol_key" + auditTitle());
+            filteredAuthorWriter.write("author_name,birth_date,death_date,author_date,biography,photo,ol_key" + auditTitle());
             filteredAuthorWriter.newLine();
             filteredAuthorAltNameWriter.write("alternate_name,author_id" + auditTitle());
             filteredAuthorAltNameWriter.newLine();
@@ -269,8 +269,8 @@ public class WorkProcessor extends BaseProcessor {
                         }
                     }
                     
-                    for (int workId : filteredAuthorWorksMap.get(authorKey)) {
-                        filteredWorkAuthorWriter.write(toDataWithAudit(currentAuthorId, workId));
+                    for (int filteredWorkId : filteredAuthorWorksMap.get(authorKey)) {
+                        filteredWorkAuthorWriter.write(toDataWithAudit(currentAuthorId, filteredWorkId));
                         filteredWorkAuthorWriter.newLine();
                     }
                 }

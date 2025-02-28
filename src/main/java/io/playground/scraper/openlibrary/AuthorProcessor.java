@@ -40,7 +40,7 @@ public class AuthorProcessor extends BaseProcessor {
              BufferedWriter authorIdMapWriter = Files.newBufferedWriter(Path.of(OPEN_LIBRARY_AUTHOR_ID_MAP_PATH), ENCODING);
         ) {
             String line;
-            String authorTitle = "author_name,birth_date,death_date,date,biography,photo,ol_key" + auditTitle();
+            String authorTitle = "author_name,birth_date,death_date,author_date,biography,photo,ol_key" + auditTitle();
             String authorAltNameTitle = "alternate_name,author_id" + auditTitle();
             String authorLinkTitle = "title,url,author_id" + auditTitle();
             authorWriter.write(authorTitle);

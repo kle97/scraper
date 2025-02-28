@@ -54,13 +54,15 @@ public abstract class BaseProcessor {
     protected void clearOldProcessedFiles(String pathPattern) {
         PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:**" + Constant.SEPARATOR + pathPattern);
         File[] directories = new File(OPEN_LIBRARY_PROCESSED_PATH).listFiles(file -> file.isDirectory() && matcher.matches(file.toPath()));
-        for (File directory : directories) {
-            for (File file : directory.listFiles()) {
-                if (!file.isDirectory()) {
-                    file.delete();
+        if (directories != null) {
+            for (File directory : directories) {
+                for (File file : directory.listFiles()) {
+                    if (!file.isDirectory()) {
+                        file.delete();
+                    }
                 }
+                directory.delete();
             }
-            directory.delete();
         }
     }
 
@@ -90,18 +92,6 @@ public abstract class BaseProcessor {
         }
         return result;
     }
-
-//    public Map<String, Integer> getFilteredMap(String filePath) throws IOException {
-//        Map<String, Integer> result = new HashMap<>();
-//        if (new File(filePath).exists()) {
-//            List<String> lines = Files.readAllLines(Path.of(filePath), ENCODING);
-//            if (!lines.isEmpty()) {
-//                String line = lines.getFirst();
-//                result = JacksonUtil.readValue(line, new TypeReference<>() {});
-//            }
-//        }
-//        return result;
-//    }
 
     protected String toDataWithAudit(Object... values) {
         return toData(values) + auditData();
@@ -133,8 +123,9 @@ public abstract class BaseProcessor {
 
     protected String toData(Object value, boolean isLast) {
         if (value != null) {
-            if (value instanceof String) {
-                return isLast ? "'" + value + "'" : "'" + value + "',";
+            if (value instanceof String str) {
+                str = str.replaceAll("\"", "'");
+                return isLast ? "\"" + str + "\"" : "\"" + str + "\",";
             } else {
                 return isLast ? String.valueOf(value) : value + ",";
             }
@@ -173,7 +164,7 @@ public abstract class BaseProcessor {
     }
 
     protected String auditTitle() {
-        return ",last_created_by,last_created_at,last_modified_by,last_modified_at,revision";
+        return ",created_by,created_at,last_modified_by,last_modified_at,revision";
     }
 
     protected String auditData() {
