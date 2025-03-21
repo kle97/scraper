@@ -2,6 +2,7 @@ package io.playground.scraper.openlibrary;
 
 import io.playground.scraper.constant.Constant;
 import io.playground.scraper.openlibrary.model.Edition;
+import io.playground.scraper.openlibrary.model.FixedWorkInfo;
 import io.playground.scraper.util.JacksonUtil;
 import lombok.extern.slf4j.Slf4j;
 
@@ -28,13 +29,14 @@ public class EditionProcessor extends BaseProcessor {
         clearOldProcessedFiles("edition-*");
 
         Map<String, Integer> workIdMap = getMapFromJsonFile(OPEN_LIBRARY_WORK_ID_MAP_PATH);
+        Map<String, Boolean> impairedWorkIdMap = getMapFromJsonFile(OPEN_LIBRARY_IMPAIRED_WORK_ID_MAP_PATH);
         Map<String, Integer> workRedirectMap = getMapFromJsonFile(OPEN_LIBRARY_AUTHOR_REDIRECT_MAP_PATH);
         Map<String, Integer> filteredWorkIdMap = getMapFromJsonFile(OPEN_LIBRARY_FILTERED_WORK_ID_MAP_PATH);
         Map<String, Integer> publisherMap = new HashMap<>();
         Map<String, Integer> filteredPublisherMap = new HashMap<>();
 
         Set<String> englishWordsMap = getEnglishWords();
-        
+
         String directoryPath = OPEN_LIBRARY_PROCESSED_PATH + "edition-" + fileTimestamp + Constant.SEPARATOR;
         File directory = new File(directoryPath);
         Files.createDirectories(directory.toPath());
@@ -52,23 +54,26 @@ public class EditionProcessor extends BaseProcessor {
              BufferedWriter publisherWriter = Files.newBufferedWriter(Path.of(publisherCsvFile), ENCODING);
              BufferedWriter filteredPublisherWriter = Files.newBufferedWriter(Path.of(filteredPublisherFile), ENCODING);
              BufferedWriter malformedEditionWriter = Files.newBufferedWriter(Path.of(OPEN_LIBRARY_LEFTOVER_TITLE_PATH), ENCODING);
+             BufferedWriter fixedWorkIdMapWriter = Files.newBufferedWriter(Path.of(OPEN_LIBRARY_FIXED_WORK_ID_MAP_PATH), ENCODING);
         ) {
-            String editionTitle = "title,subtitle,description,pagination,number_of_pages,volumns,physical_format," +
+            String editionHeader = "title,subtitle,description,pagination,number_of_pages,volumns,physical_format," +
                     "physical_dimensions,weight,isbn_10,isbn_13,oclc_number,lccn_number,dewey_number,lc_classifications," +
                     "language,publish_date,publish_country,publish_place," +
 //                    "by_statement,contributions,identifier," +
                     "cover,ol_key,grade,publisher_id,work_id" + auditTitle();
-            String publisherTitle = "publisher_name" + auditTitle();
+            String publisherHeader = "publisher_name" + auditTitle();
             
-            editionWriter.write(editionTitle);
+            editionWriter.write(editionHeader);
             editionWriter.newLine();
-            publisherWriter.write(publisherTitle);
+            publisherWriter.write(publisherHeader);
             publisherWriter.newLine();
 
-            filteredEditionWriter.write(editionTitle);
+            filteredEditionWriter.write(editionHeader);
             filteredEditionWriter.newLine();
-            filteredPublisherWriter.write(publisherTitle);
+            filteredPublisherWriter.write(publisherHeader);
             filteredPublisherWriter.newLine();
+
+            fixedWorkIdMapWriter.write("{");
             
             String line;
             while ((line = reader.readLine()) != null) {
@@ -76,7 +81,7 @@ public class EditionProcessor extends BaseProcessor {
                     editionWriter.close();
                     editionCsvFile = directoryPath + "edition-" + currentEditionId + ".csv";
                     editionWriter = Files.newBufferedWriter(Path.of(editionCsvFile), ENCODING);
-                    editionWriter.write(editionTitle);
+                    editionWriter.write(editionHeader);
                     editionWriter.newLine();
                     startEditionId = currentEditionId;
                 }
@@ -129,6 +134,8 @@ public class EditionProcessor extends BaseProcessor {
                 if (edition.isbn13() != null) {
                     size = Math.max(edition.isbn13().size(), size);
                 }
+
+                boolean isWorkTitleFixed = !(impairedWorkIdMap.containsKey(editionWorkKey) && !impairedWorkIdMap.get(editionWorkKey));
                 for (int i = 0; i < size; i++) {
                     String isbn10 = edition.isbn10() != null && edition.isbn10().size() > i ? edition.isbn10().get(i) : null;
                     String isbn13 = edition.isbn13() != null && edition.isbn13().size() > i ? edition.isbn13().get(i) : null;
@@ -136,7 +143,7 @@ public class EditionProcessor extends BaseProcessor {
                             && edition.covers().getFirst() != null && !edition.covers().getFirst().equals("-1")
                             ? edition.covers().getFirst() : null;
                     int grade = 0;
-                    if (edition.description() != null) {
+                    if (!edition.description().isBlank()) {
                         grade += 5;
                         if (edition.description().length() > 20) {
                             grade += 20;
@@ -149,6 +156,12 @@ public class EditionProcessor extends BaseProcessor {
                     grade += edition.publishDate() != null ? 5 : 0;
                     grade += edition.numberOfPages() != null ? 5 : 0;
                     grade += isInEnglish ? 100 : 0;
+
+                    if (!isWorkTitleFixed && isInEnglish && !edition.description().isBlank()) {
+                        String fixedValue = JacksonUtil.writeValueAsString(new FixedWorkInfo(edition.title(), edition.description()));
+                        fixedWorkIdMapWriter.write("\"" + editionWorkKey + "\": " + fixedValue + ", ");
+                        impairedWorkIdMap.put(editionWorkKey, true);
+                    }
 
                     String publisherId = null;
                     if (edition.publisher() != null) {
@@ -202,6 +215,7 @@ public class EditionProcessor extends BaseProcessor {
                     }
                 }
             }
+            fixedWorkIdMapWriter.write("}");
             editionWriter.close();
         }
 

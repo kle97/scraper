@@ -15,8 +15,9 @@ public class Core {
         
         redirectProcessor.processRedirect();
         authorProcessor.processAuthor();
-        workProcessor.processWork();
+        workProcessor.processWork(true);
         editionProcessor.processEdition();
+        workProcessor.processWork(false);
     }
 }
     

@@ -2,6 +2,7 @@ package io.playground.scraper.openlibrary;
 
 import io.playground.scraper.constant.Constant;
 import io.playground.scraper.openlibrary.model.Author;
+import io.playground.scraper.openlibrary.model.FixedWorkInfo;
 import io.playground.scraper.openlibrary.model.Link;
 import io.playground.scraper.openlibrary.model.Work;
 import io.playground.scraper.util.JacksonUtil;
@@ -18,7 +19,7 @@ import java.util.*;
 @Slf4j
 public class WorkProcessor extends BaseProcessor {
 
-    public void processWork() throws IOException {
+    public void processWork(boolean isFirstPass) throws IOException {
         long startTime = System.currentTimeMillis();
         Path latestWorkPath = getLatestFile(OPEN_LIBRARY_WORK_PATH_PATTERN);
         if (latestWorkPath == null) {
@@ -28,6 +29,7 @@ public class WorkProcessor extends BaseProcessor {
         clearOldProcessedFiles("work-*");
 
         Map<String, Integer> authorIdMap = getMapFromJsonFile(OPEN_LIBRARY_AUTHOR_ID_MAP_PATH);
+        Map<String, FixedWorkInfo> fixedWorkIdMap = !isFirstPass ? getMapFromJsonFile(OPEN_LIBRARY_FIXED_WORK_ID_MAP_PATH) : new HashMap<>();
         Map<String, Integer> authorRedirectMap = getMapFromJsonFile(OPEN_LIBRARY_AUTHOR_REDIRECT_MAP_PATH);
         Map<String, List<Integer>> workRatingMap = getRatingMap();
 
@@ -58,6 +60,7 @@ public class WorkProcessor extends BaseProcessor {
         BufferedWriter workWriter = Files.newBufferedWriter(Path.of(workCsvFile), ENCODING);
         try (BufferedReader reader = Files.newBufferedReader(latestWorkPath, ENCODING);
              BufferedWriter workIdMapWriter = Files.newBufferedWriter(Path.of(OPEN_LIBRARY_WORK_ID_MAP_PATH), ENCODING);
+             BufferedWriter impairedWorkIdMapWriter = Files.newBufferedWriter(Path.of(OPEN_LIBRARY_IMPAIRED_WORK_ID_MAP_PATH), ENCODING);
              BufferedWriter filteredWorkIdMapWriter = Files.newBufferedWriter(Path.of(OPEN_LIBRARY_FILTERED_WORK_ID_MAP_PATH), ENCODING);
              BufferedWriter subjectWriter = Files.newBufferedWriter(Path.of(subjectCsvFile), ENCODING);
              BufferedWriter workSubjectWriter = Files.newBufferedWriter(Path.of(workSubjectCsvFile), ENCODING);
@@ -68,31 +71,32 @@ public class WorkProcessor extends BaseProcessor {
              BufferedWriter filteredWorkSubjectWriter = Files.newBufferedWriter(Path.of(filteredWorkSubjectCsvFile), ENCODING);
              BufferedWriter filteredRatingWriter = Files.newBufferedWriter(Path.of(filteredRatingCsvFile), ENCODING);
         ) {
-            String workTitle = "title,ol_key" + auditTitle();
-            String subjectTitle = "subject_name" + auditTitle();
-            String workSubjectTitle = "work_id,subject_id" + auditTitle();
-            String workAuthorTitle = "author_id,work_id" + auditTitle();
-            String ratingTitle = "score,work_id" + auditTitle();
-            workWriter.write(workTitle);
+            String workHeader = "title,description,ol_key" + auditTitle();
+            String subjectHeader = "subject_name" + auditTitle();
+            String workSubjectHeader = "work_id,subject_id" + auditTitle();
+            String workAuthorHeader = "author_id,work_id" + auditTitle();
+            String ratingHeader = "score,work_id" + auditTitle();
+            workWriter.write(workHeader);
             workWriter.newLine();
-            subjectWriter.write(subjectTitle);
+            subjectWriter.write(subjectHeader);
             subjectWriter.newLine();
-            workSubjectWriter.write(workSubjectTitle);
+            workSubjectWriter.write(workSubjectHeader);
             workSubjectWriter.newLine();
-            workAuthorWriter.write(workAuthorTitle);
+            workAuthorWriter.write(workAuthorHeader);
             workAuthorWriter.newLine();
-            ratingWriter.write(ratingTitle);
+            ratingWriter.write(ratingHeader);
             ratingWriter.newLine();
 
-            filteredWorkWriter.write(workTitle);
+            filteredWorkWriter.write(workHeader);
             filteredWorkWriter.newLine();
-            filteredSubjectWriter.write(subjectTitle);
+            filteredSubjectWriter.write(subjectHeader);
             filteredSubjectWriter.newLine();
-            filteredWorkSubjectWriter.write(workSubjectTitle);
+            filteredWorkSubjectWriter.write(workSubjectHeader);
             filteredWorkSubjectWriter.newLine();
-            filteredRatingWriter.write(ratingTitle);
+            filteredRatingWriter.write(ratingHeader);
             filteredRatingWriter.newLine();
             workIdMapWriter.write("{");
+            impairedWorkIdMapWriter.write("{");
             filteredWorkIdMapWriter.write("{");
             String line;
             while ((line = reader.readLine()) != null) {
@@ -100,7 +104,7 @@ public class WorkProcessor extends BaseProcessor {
                     workWriter.close();
                     workCsvFile = directoryPath + "work-" + currentWorkId + ".csv";
                     workWriter = Files.newBufferedWriter(Path.of(workCsvFile), ENCODING);
-                    workWriter.write(workTitle);
+                    workWriter.write(workHeader);
                     workWriter.newLine();
                     startWorkId = currentWorkId;
                 }
@@ -108,7 +112,15 @@ public class WorkProcessor extends BaseProcessor {
                 boolean isFiltered = false;
                 line = line.substring(line.indexOf("{"));
                 Work work = JacksonUtil.readValue(line, Work.class);
-                String value = toDataWithAudit(work.title(), work.key());
+                String workTitle = work.title();
+                String workDescription = work.description();
+                if (fixedWorkIdMap.containsKey(work.olKeyString())) {
+                    FixedWorkInfo fixedWorkInfo = fixedWorkIdMap.get(work.olKeyString());
+                    workTitle = fixedWorkInfo.title();
+                    workDescription = fixedWorkInfo.description();
+                }
+
+                String value = toDataWithAudit(workTitle, workDescription, work.key());
                 workWriter.write(value);
                 workWriter.newLine();
                 currentWorkId++;
@@ -126,6 +138,10 @@ public class WorkProcessor extends BaseProcessor {
                             isInEnglish = true;
                             break;
                         }
+                    }
+
+                    if (!isInEnglish) {
+                        impairedWorkIdMapWriter.write("\"" + work.olKey() + "\": " + false + ", ");
                     }
                 }
                 
@@ -213,71 +229,73 @@ public class WorkProcessor extends BaseProcessor {
                 }
             }
             workIdMapWriter.write("}");
+            impairedWorkIdMapWriter.write("}");
             filteredWorkIdMapWriter.write("}");
             workWriter.close();
         }
 
-        Path latestAuthorPath = getLatestFile(OPEN_LIBRARY_AUTHOR_PATH_PATTERN);
-        if (latestAuthorPath == null) {
-            log.error("There's no unprocessed author file!");
-            return;
-        }
-        
-        String filteredAuthorCsvFile = directoryPath + "filtered-author" + ".csv";
-        String filteredAuthorAlternateNameCsvFile = directoryPath + "filtered-author-alternate-name" + ".csv";
-        String filteredAuthorLinkCsvFile = directoryPath + "filtered-author-link" + ".csv";
+        if (!isFirstPass) {
+            Path latestAuthorPath = getLatestFile(OPEN_LIBRARY_AUTHOR_PATH_PATTERN);
+            if (latestAuthorPath == null) {
+                log.error("There's no unprocessed author file!");
+                return;
+            }
 
-        int currentAuthorId = 0;
-        try (BufferedReader authorReader = Files.newBufferedReader(latestAuthorPath, ENCODING);
-             BufferedWriter filteredAuthorWriter = Files.newBufferedWriter(Path.of(filteredAuthorCsvFile), ENCODING);
-             BufferedWriter filteredAuthorAltNameWriter = Files.newBufferedWriter(Path.of(filteredAuthorAlternateNameCsvFile), ENCODING);
-             BufferedWriter filteredAuthorLinkWriter = Files.newBufferedWriter(Path.of(filteredAuthorLinkCsvFile), ENCODING);
-             BufferedWriter filteredWorkAuthorWriter = Files.newBufferedWriter(Path.of(filteredWorkAuthorCsvFile), ENCODING);
-        ) {
-            String line;
-            filteredAuthorWriter.write("author_name,birth_date,death_date,author_date,biography,photo,ol_key" + auditTitle());
-            filteredAuthorWriter.newLine();
-            filteredAuthorAltNameWriter.write("alternate_name,author_id" + auditTitle());
-            filteredAuthorAltNameWriter.newLine();
-            filteredAuthorLinkWriter.write("title,url,author_id" + auditTitle());
-            filteredAuthorLinkWriter.newLine();
-            filteredWorkAuthorWriter.write("author_id,work_id" + auditTitle());
-            filteredWorkAuthorWriter.newLine();
-            while ((line = authorReader.readLine()) != null) {
-                String authorKey = line.substring(line.indexOf("/authors/OL") + 11, line.indexOf("A"));
-                if (filteredAuthorWorksMap.containsKey(authorKey)) {
-                    line = line.substring(line.indexOf("{"));
-                    Author author = JacksonUtil.readValue(line, Author.class);
-                    String value = toDataWithAudit(author.name(), author.birthDate(), author.deathDate(), author.date(),
-                                                   author.bio(), author.photo(), author.key());
+            String filteredAuthorCsvFile = directoryPath + "filtered-author" + ".csv";
+            String filteredAuthorAlternateNameCsvFile = directoryPath + "filtered-author-alternate-name" + ".csv";
+            String filteredAuthorLinkCsvFile = directoryPath + "filtered-author-link" + ".csv";
 
-                    currentAuthorId++;
-                    filteredAuthorWriter.write(value);
-                    filteredAuthorWriter.newLine();
+            int currentAuthorId = 0;
+            try (BufferedReader authorReader = Files.newBufferedReader(latestAuthorPath, ENCODING);
+                 BufferedWriter filteredAuthorWriter = Files.newBufferedWriter(Path.of(filteredAuthorCsvFile), ENCODING);
+                 BufferedWriter filteredAuthorAltNameWriter = Files.newBufferedWriter(Path.of(filteredAuthorAlternateNameCsvFile), ENCODING);
+                 BufferedWriter filteredAuthorLinkWriter = Files.newBufferedWriter(Path.of(filteredAuthorLinkCsvFile), ENCODING);
+                 BufferedWriter filteredWorkAuthorWriter = Files.newBufferedWriter(Path.of(filteredWorkAuthorCsvFile), ENCODING);
+            ) {
+                String line;
+                filteredAuthorWriter.write("author_name,birth_date,death_date,author_date,biography,photo,ol_key" + auditTitle());
+                filteredAuthorWriter.newLine();
+                filteredAuthorAltNameWriter.write("alternate_name,author_id" + auditTitle());
+                filteredAuthorAltNameWriter.newLine();
+                filteredAuthorLinkWriter.write("title,url,author_id" + auditTitle());
+                filteredAuthorLinkWriter.newLine();
+                filteredWorkAuthorWriter.write("author_id,work_id" + auditTitle());
+                filteredWorkAuthorWriter.newLine();
+                while ((line = authorReader.readLine()) != null) {
+                    String authorKey = line.substring(line.indexOf("/authors/OL") + 11, line.indexOf("A"));
+                    if (filteredAuthorWorksMap.containsKey(authorKey)) {
+                        line = line.substring(line.indexOf("{"));
+                        Author author = JacksonUtil.readValue(line, Author.class);
+                        String value = toDataWithAudit(author.name(), author.birthDate(), author.deathDate(), author.date(),
+                                                       author.bio(), author.photo(), author.key());
 
-                    if (author.alternateNames() != null) {
-                        for (String alternateName : author.alternateNames()) {
-                            filteredAuthorAltNameWriter.write(toDataWithAudit(alternateName, currentAuthorId));
-                            filteredAuthorAltNameWriter.newLine();
+                        currentAuthorId++;
+                        filteredAuthorWriter.write(value);
+                        filteredAuthorWriter.newLine();
+
+                        if (author.alternateNames() != null) {
+                            for (String alternateName : author.alternateNames()) {
+                                filteredAuthorAltNameWriter.write(toDataWithAudit(alternateName, currentAuthorId));
+                                filteredAuthorAltNameWriter.newLine();
+                            }
+                        }
+
+                        if (author.links() != null) {
+                            for (Link link : author.links()) {
+                                filteredAuthorLinkWriter.write(toDataWithAudit(link.title(), link.url(), currentAuthorId));
+                                filteredAuthorLinkWriter.newLine();
+                            }
+                        }
+
+                        for (int filteredWorkId : filteredAuthorWorksMap.get(authorKey)) {
+                            filteredWorkAuthorWriter.write(toDataWithAudit(currentAuthorId, filteredWorkId));
+                            filteredWorkAuthorWriter.newLine();
                         }
                     }
 
-                    if (author.links() != null) {
-                        for (Link link : author.links()) {
-                            filteredAuthorLinkWriter.write(toDataWithAudit(link.title(), link.url(), currentAuthorId));
-                            filteredAuthorLinkWriter.newLine();
-                        }
-                    }
-                    
-                    for (int filteredWorkId : filteredAuthorWorksMap.get(authorKey)) {
-                        filteredWorkAuthorWriter.write(toDataWithAudit(currentAuthorId, filteredWorkId));
-                        filteredWorkAuthorWriter.newLine();
-                    }
                 }
-                
             }
         }
-        
 
         long stopTime = System.currentTimeMillis();
         log.info("Processing works elapsed time: {}", msToProperTime(stopTime - startTime));

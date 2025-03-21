@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 public record Work(String title,
                    String key,
                    @JsonProperty("authors") JsonNode authorNodes,
+                   @JsonProperty("description") JsonNode descriptionNode,
                    List<String> subjects,
                    List<String> subjectPlaces,
                    List<String> subjectPeople,
@@ -29,6 +30,22 @@ public record Work(String title,
             }
         }
         return List.of();
+    }
+
+    public String description() {
+        if (descriptionNode != null) {
+            if (descriptionNode.isTextual()) {
+                return descriptionNode.asText()
+                                      .replaceAll("\\r", "&#13")
+                                      .replaceAll("\\n", "&#10");
+            } else if (descriptionNode.isObject()) {
+                return JacksonUtil.readValue(descriptionNode, NodeTypeValue.class)
+                                  .value()
+                                  .replaceAll("\\r", "&#13")
+                                  .replaceAll("\\n", "&#10");
+            }
+        }
+        return "";
     }
 
     public String cover() {

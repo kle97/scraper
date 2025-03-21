@@ -31,6 +31,8 @@ public abstract class BaseProcessor {
 
     public static final String OPEN_LIBRARY_AUTHOR_ID_MAP_PATH = OPEN_LIBRARY_PROCESSED_PATH + "author-id-map.json5";
     public static final String OPEN_LIBRARY_WORK_ID_MAP_PATH = OPEN_LIBRARY_PROCESSED_PATH + "work-id-map.json5";
+    public static final String OPEN_LIBRARY_IMPAIRED_WORK_ID_MAP_PATH = OPEN_LIBRARY_PROCESSED_PATH + "impaired-work-id-map.json5";
+    public static final String OPEN_LIBRARY_FIXED_WORK_ID_MAP_PATH = OPEN_LIBRARY_PROCESSED_PATH + "fixed-work-id-map.json5";
     public static final String OPEN_LIBRARY_FILTERED_WORK_ID_MAP_PATH = OPEN_LIBRARY_PROCESSED_PATH + "filtered-work-id-map.json5";
     public static final String OPEN_LIBRARY_AUTHOR_REDIRECT_MAP_PATH = OPEN_LIBRARY_PROCESSED_PATH + "author-redirect-map.json5";
     public static final String OPEN_LIBRARY_WORK_REDIRECT_MAP_PATH = OPEN_LIBRARY_PROCESSED_PATH + "work-redirect-map.json5";

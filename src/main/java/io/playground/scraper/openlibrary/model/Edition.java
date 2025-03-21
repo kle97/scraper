@@ -59,14 +59,17 @@ public record Edition(String title,
     public String description() {
         if (descriptionNode != null) {
             if (descriptionNode.isTextual()) {
-                return descriptionNode.asText().replaceAll("\\r|\\n|\\r\\n", " ");
+                return descriptionNode.asText()
+                                      .replaceAll("\\r", "&#13")
+                                      .replaceAll("\\n", "&#10");
             } else if (descriptionNode.isObject()) {
                 return JacksonUtil.readValue(descriptionNode, NodeTypeValue.class)
                                   .value()
-                                  .replaceAll("\\r|\\n|\\r\\n", " ");
+                                  .replaceAll("\\r", "&#13")
+                                  .replaceAll("\\n", "&#10");
             }
         }
-        return null;
+        return "";
     }
 
     public String publisher() {
