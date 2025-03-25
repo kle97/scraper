@@ -95,6 +95,11 @@ public abstract class BaseProcessor {
         return result;
     }
 
+    protected <K, V> Map<K, V> getMapFromJsonFile(String filePath, Class<K> keyClass, Class<V> valueClass) throws IOException {
+        Map<K, V> result = JacksonUtil.parseJsonFileAsMap(filePath, keyClass, valueClass);
+        return result == null ? new HashMap<>() : result;
+    }
+
     protected String toDataWithAudit(Object... values) {
         return toData(values) + auditData();
     }

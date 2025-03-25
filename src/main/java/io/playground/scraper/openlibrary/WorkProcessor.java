@@ -29,7 +29,9 @@ public class WorkProcessor extends BaseProcessor {
         clearOldProcessedFiles("work-*");
 
         Map<String, Integer> authorIdMap = getMapFromJsonFile(OPEN_LIBRARY_AUTHOR_ID_MAP_PATH);
-        Map<String, FixedWorkInfo> fixedWorkIdMap = !isFirstPass ? getMapFromJsonFile(OPEN_LIBRARY_FIXED_WORK_ID_MAP_PATH) : new HashMap<>();
+        Map<String, FixedWorkInfo> fixedWorkIdMap = !isFirstPass
+                ? getMapFromJsonFile(OPEN_LIBRARY_FIXED_WORK_ID_MAP_PATH, String.class, FixedWorkInfo.class)
+                : new HashMap<>();
         Map<String, Integer> authorRedirectMap = getMapFromJsonFile(OPEN_LIBRARY_AUTHOR_REDIRECT_MAP_PATH);
         Map<String, List<Integer>> workRatingMap = getRatingMap();
 
