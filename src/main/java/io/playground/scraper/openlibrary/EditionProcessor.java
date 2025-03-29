@@ -12,9 +12,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @Slf4j
 public class EditionProcessor extends BaseProcessor {
@@ -32,6 +30,10 @@ public class EditionProcessor extends BaseProcessor {
         Map<String, Boolean> impairedWorkIdMap = getMapFromJsonFile(OPEN_LIBRARY_IMPAIRED_WORK_ID_MAP_PATH);
         Map<String, Integer> workRedirectMap = getMapFromJsonFile(OPEN_LIBRARY_AUTHOR_REDIRECT_MAP_PATH);
         Map<String, Integer> filteredWorkIdMap = getMapFromJsonFile(OPEN_LIBRARY_FILTERED_WORK_ID_MAP_PATH);
+        RatingProcessor ratingProcessor = new RatingProcessor();
+        Map<String, List<Integer>> workRatingMap = ratingProcessor.getWorkRatingMap();
+        Map<String, List<Integer>> editionRatingMap = ratingProcessor.getEditionRatingMap();
+
         Map<String, Integer> publisherMap = new HashMap<>();
         Map<String, Integer> filteredPublisherMap = new HashMap<>();
 
@@ -43,10 +45,14 @@ public class EditionProcessor extends BaseProcessor {
         
         String editionCsvFile = directoryPath + "edition" + ".csv";
         String publisherCsvFile = directoryPath + "publisher" + ".csv";
+        String reviewCsvFile = directoryPath + "review" + ".csv";
+
         String filteredEditionFile = directoryPath + "filtered-edition" + ".csv";
         String filteredPublisherFile = directoryPath + "filtered-publisher" + ".csv";
+        String filteredReviewCsvFile = directoryPath + "filtered-review" + ".csv";
 
         int currentEditionId = 0;
+        int currentFilteredEditionId = 0;
         int startEditionId = currentEditionId;
         BufferedWriter editionWriter = Files.newBufferedWriter(Path.of(editionCsvFile), ENCODING);
         try (BufferedReader reader = Files.newBufferedReader(latestEditionPath, ENCODING);
@@ -55,24 +61,30 @@ public class EditionProcessor extends BaseProcessor {
              BufferedWriter filteredPublisherWriter = Files.newBufferedWriter(Path.of(filteredPublisherFile), ENCODING);
              BufferedWriter malformedEditionWriter = Files.newBufferedWriter(Path.of(OPEN_LIBRARY_LEFTOVER_TITLE_PATH), ENCODING);
              BufferedWriter fixedWorkIdMapWriter = Files.newBufferedWriter(Path.of(OPEN_LIBRARY_FIXED_WORK_ID_MAP_PATH), ENCODING);
+             BufferedWriter reviewWriter = Files.newBufferedWriter(Path.of(reviewCsvFile), ENCODING);
+             BufferedWriter filteredReviewWriter = Files.newBufferedWriter(Path.of(filteredReviewCsvFile), ENCODING);
         ) {
             String editionHeader = "title,subtitle,description,pagination,number_of_pages,volumns,physical_format," +
                     "physical_dimensions,weight,isbn_10,isbn_13,oclc_number,lccn_number,dewey_number,lc_classifications," +
                     "language,publish_date,publish_country,publish_place," +
 //                    "by_statement,contributions,identifier," +
-                    "cover,ol_key,grade,publisher_id,work_id" + auditTitle();
+                    "cover,ol_key,grade,average_rating,rating_count,publisher_id,work_id" + auditTitle();
             String publisherHeader = "publisher_name" + auditTitle();
+            String reviewHeader = "score,review,profile_id,work_id" + auditTitle();
             
             editionWriter.write(editionHeader);
             editionWriter.newLine();
             publisherWriter.write(publisherHeader);
             publisherWriter.newLine();
+            reviewWriter.write(reviewHeader);
+            reviewWriter.newLine();
 
             filteredEditionWriter.write(editionHeader);
             filteredEditionWriter.newLine();
             filteredPublisherWriter.write(publisherHeader);
             filteredPublisherWriter.newLine();
-
+            filteredReviewWriter.write(reviewHeader);
+            filteredReviewWriter.newLine();
             fixedWorkIdMapWriter.write("{");
             
             String line;
@@ -120,7 +132,7 @@ public class EditionProcessor extends BaseProcessor {
                         if (englishWordsMap.contains(token.trim().toLowerCase())) {
                             englishWordCount++;
                         }
-                        if (englishWordCount >= 3) {
+                        if (englishWordCount >= 2) {
                             isInEnglish = true;
                             break;
                         }
@@ -176,6 +188,31 @@ public class EditionProcessor extends BaseProcessor {
                         }
                     }
 
+                    currentEditionId++;
+                    int ratingCount = 0;
+                    int totalRating = 0;
+                    if (workRatingMap.containsKey(editionWorkKey)) {
+                        List<Integer> scores = workRatingMap.get(editionWorkKey);
+                        for (int score : scores) {
+                            reviewWriter.write(toDataWithAudit(score, null, 1, currentEditionId));
+                            reviewWriter.newLine();
+                            ratingCount++;
+                            totalRating += score;
+                        }
+                    }
+
+                    if (editionRatingMap.containsKey(edition.key())) {
+                        List<Integer> scores = editionRatingMap.get(edition.key());
+                        for (int score : scores) {
+                            reviewWriter.write(toDataWithAudit(score, null, 1, currentEditionId));
+                            reviewWriter.newLine();
+                            ratingCount++;
+                            totalRating += score;
+                        }
+                    }
+
+                    double averageRating = ratingCount > 0 ? ((double) totalRating / ratingCount) : 0;
+
                     String value = toDataWithAudit(edition.title(), edition.subtitle(), edition.description(),
                                                    edition.pagination(), edition.numberOfPages(), edition.numberOfVolumes(),
                                                    edition.physicalFormat(), edition.physicalDimensions(), edition.weight(),
@@ -183,35 +220,62 @@ public class EditionProcessor extends BaseProcessor {
                                                    edition.deweyNumber(i), edition.lcClassification(i), edition.language(),
                                                    edition.publishDate(), edition.publishCountry(), edition.publishPlace(),
 //                                                       edition.byStatement(), edition.contributions(), edition.identifiers(),
-                                                   cover, edition.key(), grade, publisherId, editionWorkKey);
+                                                   cover, edition.key(), grade, averageRating, ratingCount, publisherId, editionWorkKey);
                     editionWriter.write(value);
                     editionWriter.newLine();
-                    currentEditionId++;
 
                     if (filteredWorkIdMap.containsKey(editionWorkKey)) {
-                        String filteredPublisherId = null;
-                        if (edition.publisher() != null) {
-                            if (filteredPublisherMap.containsKey(edition.publisher())) {
-                                filteredPublisherId = String.valueOf(filteredPublisherMap.get(edition.publisher()));
-                            } else {
-                                int index = filteredPublisherMap.size() + 1;
-                                filteredPublisherMap.put(edition.publisher(), index);
-                                filteredPublisherId = String.valueOf(index);
-                                filteredPublisherWriter.write(toDataWithAudit(edition.publisher()));
-                                filteredPublisherWriter.newLine();
-                            }
-                        }
+                        if (isInEnglish && grade >= 115) {
+                            currentFilteredEditionId++;
 
-                        value = toDataWithAudit(edition.title(), edition.subtitle(), edition.description(),
-                                                edition.pagination(), edition.numberOfPages(), edition.numberOfVolumes(),
-                                                edition.physicalFormat(), edition.physicalDimensions(), edition.weight(),
-                                                isbn10, isbn13, edition.oclcNumber(i), edition.lccnNumber(i),
-                                                edition.deweyNumber(i), edition.lcClassification(i), edition.language(),
-                                                edition.publishDate(), edition.publishCountry(), edition.publishPlace(),
+                            int filteredRatingCount = 0;
+                            int filteredTotalRating = 0;
+                            if (workRatingMap.containsKey(editionWorkKey)) {
+                                List<Integer> scores = workRatingMap.get(editionWorkKey);
+                                for (int score : scores) {
+                                    filteredReviewWriter.write(toDataWithAudit(score, null, 1, currentFilteredEditionId));
+                                    filteredReviewWriter.newLine();
+                                    filteredRatingCount++;
+                                    filteredTotalRating += score;
+                                }
+                            }
+
+                            if (editionRatingMap.containsKey(edition.key())) {
+                                List<Integer> scores = editionRatingMap.get(edition.key());
+                                for (int score : scores) {
+                                    filteredReviewWriter.write(toDataWithAudit(score, null, 1, currentFilteredEditionId));
+                                    filteredReviewWriter.newLine();
+                                    filteredRatingCount++;
+                                    filteredTotalRating += score;
+                                }
+                            }
+                            double filteredAverageRating = filteredRatingCount > 0 ? ((double) filteredTotalRating / filteredRatingCount) : 0;
+
+                            String filteredPublisherId = null;
+                            if (edition.publisher() != null) {
+                                if (filteredPublisherMap.containsKey(edition.publisher())) {
+                                    filteredPublisherId = String.valueOf(filteredPublisherMap.get(edition.publisher()));
+                                } else {
+                                    int index = filteredPublisherMap.size() + 1;
+                                    filteredPublisherMap.put(edition.publisher(), index);
+                                    filteredPublisherId = String.valueOf(index);
+                                    filteredPublisherWriter.write(toDataWithAudit(edition.publisher()));
+                                    filteredPublisherWriter.newLine();
+                                }
+                            }
+
+                            value = toDataWithAudit(edition.title(), edition.subtitle(), edition.description(),
+                                                    edition.pagination(), edition.numberOfPages(), edition.numberOfVolumes(),
+                                                    edition.physicalFormat(), edition.physicalDimensions(), edition.weight(),
+                                                    isbn10, isbn13, edition.oclcNumber(i), edition.lccnNumber(i),
+                                                    edition.deweyNumber(i), edition.lcClassification(i), edition.language(),
+                                                    edition.publishDate(), edition.publishCountry(), edition.publishPlace(),
 //                                                       edition.byStatement(), edition.contributions(), edition.identifiers(),
-                                                cover, edition.key(), grade, filteredPublisherId, filteredWorkIdMap.get(editionWorkKey));
-                        filteredEditionWriter.write(value);
-                        filteredEditionWriter.newLine();
+                                                    cover, edition.key(), grade, filteredAverageRating, filteredRatingCount,
+                                                    filteredPublisherId, filteredWorkIdMap.get(editionWorkKey));
+                            filteredEditionWriter.write(value);
+                            filteredEditionWriter.newLine();
+                        }
                     }
                 }
             }

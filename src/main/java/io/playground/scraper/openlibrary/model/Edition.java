@@ -183,6 +183,10 @@ public record Edition(String title,
         return null;
     }
 
+    public int olKey() {
+        return Integer.parseInt(key.substring(key.indexOf("OL") + 2, key.indexOf("M")));
+    }
+
     public Integer workKey() {
         if (works != null && !works.isEmpty()) {
 //            if (works.size() > 1) {

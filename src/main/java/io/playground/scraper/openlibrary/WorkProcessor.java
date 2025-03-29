@@ -33,7 +33,7 @@ public class WorkProcessor extends BaseProcessor {
                 ? getMapFromJsonFile(OPEN_LIBRARY_FIXED_WORK_ID_MAP_PATH, String.class, FixedWorkInfo.class)
                 : new HashMap<>();
         Map<String, Integer> authorRedirectMap = getMapFromJsonFile(OPEN_LIBRARY_AUTHOR_REDIRECT_MAP_PATH);
-        Map<String, List<Integer>> workRatingMap = getRatingMap();
+        Map<String, List<Integer>> ratingMap = new RatingProcessor().getRatingMap();
 
         Map<String, Integer> subjectMap = new HashMap<>();
         Map<String, Integer> filteredSubjectMap = new HashMap<>();
@@ -48,13 +48,13 @@ public class WorkProcessor extends BaseProcessor {
         String subjectCsvFile = directoryPath + "subject" + ".csv";
         String workSubjectCsvFile = directoryPath + "work-subject" + ".csv";
         String workAuthorsCsvFile = directoryPath + "author-work" + ".csv";
-        String ratingCsvFile = directoryPath + "rating" + ".csv";
+//        String ratingCsvFile = directoryPath + "rating" + ".csv";
 
         String filteredWorkCsvFile = directoryPath + "filtered-work" + ".csv";
         String filteredSubjectCsvFile = directoryPath + "filtered-subject" + ".csv";
         String filteredWorkSubjectCsvFile = directoryPath + "filtered-work-subject" + ".csv";
         String filteredWorkAuthorCsvFile = directoryPath + "filtered-author-work" + ".csv";
-        String filteredRatingCsvFile = directoryPath + "filtered-rating" + ".csv";
+//        String filteredRatingCsvFile = directoryPath + "filtered-rating" + ".csv";
 
         int currentWorkId = 0;
         int currentFilteredWorkId = 0;
@@ -67,17 +67,17 @@ public class WorkProcessor extends BaseProcessor {
              BufferedWriter subjectWriter = Files.newBufferedWriter(Path.of(subjectCsvFile), ENCODING);
              BufferedWriter workSubjectWriter = Files.newBufferedWriter(Path.of(workSubjectCsvFile), ENCODING);
              BufferedWriter workAuthorWriter = Files.newBufferedWriter(Path.of(workAuthorsCsvFile), ENCODING);
-             BufferedWriter ratingWriter = Files.newBufferedWriter(Path.of(ratingCsvFile), ENCODING);
+//             BufferedWriter ratingWriter = Files.newBufferedWriter(Path.of(ratingCsvFile), ENCODING);
              BufferedWriter filteredWorkWriter = Files.newBufferedWriter(Path.of(filteredWorkCsvFile), ENCODING);
              BufferedWriter filteredSubjectWriter = Files.newBufferedWriter(Path.of(filteredSubjectCsvFile), ENCODING);
              BufferedWriter filteredWorkSubjectWriter = Files.newBufferedWriter(Path.of(filteredWorkSubjectCsvFile), ENCODING);
-             BufferedWriter filteredRatingWriter = Files.newBufferedWriter(Path.of(filteredRatingCsvFile), ENCODING);
+//             BufferedWriter filteredRatingWriter = Files.newBufferedWriter(Path.of(filteredRatingCsvFile), ENCODING);
         ) {
             String workHeader = "title,description,ol_key" + auditTitle();
             String subjectHeader = "subject_name" + auditTitle();
             String workSubjectHeader = "work_id,subject_id" + auditTitle();
             String workAuthorHeader = "author_id,work_id" + auditTitle();
-            String ratingHeader = "score,work_id" + auditTitle();
+//            String ratingHeader = "score,work_id" + auditTitle();
             workWriter.write(workHeader);
             workWriter.newLine();
             subjectWriter.write(subjectHeader);
@@ -86,8 +86,8 @@ public class WorkProcessor extends BaseProcessor {
             workSubjectWriter.newLine();
             workAuthorWriter.write(workAuthorHeader);
             workAuthorWriter.newLine();
-            ratingWriter.write(ratingHeader);
-            ratingWriter.newLine();
+//            ratingWriter.write(ratingHeader);
+//            ratingWriter.newLine();
 
             filteredWorkWriter.write(workHeader);
             filteredWorkWriter.newLine();
@@ -95,8 +95,8 @@ public class WorkProcessor extends BaseProcessor {
             filteredSubjectWriter.newLine();
             filteredWorkSubjectWriter.write(workSubjectHeader);
             filteredWorkSubjectWriter.newLine();
-            filteredRatingWriter.write(ratingHeader);
-            filteredRatingWriter.newLine();
+//            filteredRatingWriter.write(ratingHeader);
+//            filteredRatingWriter.newLine();
             workIdMapWriter.write("{");
             impairedWorkIdMapWriter.write("{");
             filteredWorkIdMapWriter.write("{");
@@ -136,7 +136,7 @@ public class WorkProcessor extends BaseProcessor {
                         if (englishWordsMap.contains(token.trim().toLowerCase())) {
                             englishWordCount++;
                         }
-                        if (englishWordCount >= 3) {
+                        if (englishWordCount >= 2) {
                             isInEnglish = true;
                             break;
                         }
@@ -147,12 +147,12 @@ public class WorkProcessor extends BaseProcessor {
                     }
                 }
                 
-                if (workRatingMap.containsKey(work.olKeyString())) {
-                    List<Integer> scores = workRatingMap.get(work.olKeyString());
-                    for (int score : scores) {
-                        ratingWriter.write(toDataWithAudit(score, currentWorkId));
-                        ratingWriter.newLine();
-                    }
+                if (ratingMap.containsKey(work.olKeyString())) {
+                    List<Integer> scores = ratingMap.get(work.olKeyString());
+//                    for (int score : scores) {
+//                        ratingWriter.write(toDataWithAudit(score, currentWorkId));
+//                        ratingWriter.newLine();
+//                    }
                     int total = scores.stream().reduce(0, Integer::sum);
                     double averageScore = (double) total / scores.size();
                     if (currentFilteredWorkId < MAX_NUMBER_OF_FILTERED_WORKS && isInEnglish && scores.size() > 40 && averageScore >= 4) {
@@ -160,10 +160,10 @@ public class WorkProcessor extends BaseProcessor {
                         currentFilteredWorkId++;
                         filteredWorkWriter.write(value);
                         filteredWorkWriter.newLine();
-                        for (int score : scores) {
-                            filteredRatingWriter.write(toDataWithAudit(score, currentFilteredWorkId));
-                            filteredRatingWriter.newLine();
-                        }
+//                        for (int score : scores) {
+//                            filteredRatingWriter.write(toDataWithAudit(score, currentFilteredWorkId));
+//                            filteredRatingWriter.newLine();
+//                        }
                         filteredWorkIdMapWriter.write("\"" + work.olKey() + "\": " + currentFilteredWorkId + ", ");
                     }
                 }
@@ -303,39 +303,5 @@ public class WorkProcessor extends BaseProcessor {
         log.info("Processing works elapsed time: {}", msToProperTime(stopTime - startTime));
     }
 
-    private Map<String, List<Integer>> getRatingMap() throws IOException {
-        long startTime = System.currentTimeMillis();
-        Map<String, List<Integer>> result = new HashMap<>();
-        Path latestRatingPath = getLatestFile(OPEN_LIBRARY_RATING_PATH_PATTERN);
-        if (latestRatingPath == null) {
-            log.error("There's no unprocessed rating dump file!");
-            return result;
-        }
 
-        Map<String, Integer> workRedirectMap = getMapFromJsonFile(OPEN_LIBRARY_WORK_REDIRECT_MAP_PATH);
-
-        try (BufferedReader reader = Files.newBufferedReader(latestRatingPath, ENCODING);
-        ) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                String[] tokens = line.split("\\s+");
-                String workKey = tokens[0].substring(tokens[0].indexOf("OL") + 2, tokens[0].indexOf("W"));
-                if (workRedirectMap.containsKey(workKey)) {
-                    workKey = String.valueOf(workRedirectMap.get(workKey));
-                }
-                int score = Integer.parseInt(tokens[tokens.length - 2]);
-
-                if (result.containsKey(workKey)) {
-                    result.get(workKey).add(score);
-                } else {
-                    List<Integer> scores = new ArrayList<>();
-                    scores.add(score);
-                    result.put(workKey, scores);
-                }
-            }
-        }
-        long stopTime = System.currentTimeMillis();
-        log.info("Processing ratings elapsed time: {}", msToProperTime(stopTime - startTime));
-        return result;
-    }
 }
